@@ -132,7 +132,8 @@ export type Condition =
   | EvalCondition
   | ForallCondition
   | AccumulateCondition
-  | FromCondition;
+  | FromCondition
+  | OOPathCondition;
 
 export interface PatternCondition {
   kind: "PatternCondition";
@@ -198,6 +199,20 @@ export interface FromCondition {
   kind: "FromCondition";
   pattern: PatternCondition;
   expression: string;
+  range: Range;
+}
+
+export interface OOPathCondition {
+  kind: "OOPathCondition";
+  binding?: BindingVariable;
+  segments: OOPathSegment[];
+  range: Range;
+}
+
+export interface OOPathSegment {
+  kind: "OOPathSegment";
+  name: string;
+  constraints: string;
   range: Range;
 }
 

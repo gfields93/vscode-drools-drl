@@ -226,6 +226,7 @@ class DrlCstParser extends CstParser {
       { ALT: () => this.SUBRULE(this.forallCondition) },
       { ALT: () => this.SUBRULE(this.accumulateCondition) },
       { ALT: () => this.SUBRULE(this.evalCondition) },
+      { ALT: () => this.SUBRULE(this.ooPathCondition) },
       { ALT: () => this.SUBRULE(this.patternCondition) },
     ]);
     this.OPTION(() => {
@@ -283,6 +284,33 @@ class DrlCstParser extends CstParser {
     this.CONSUME(T.LParen);
     this.SUBRULE(this.balancedParenContent);
     this.CONSUME(T.RParen);
+  });
+
+  // -- OOPath Conditions (Drools 8+) -----------------------------------
+  // Syntax: $binding : /segment[ constraints ] / segment[ constraints ]
+  public ooPathCondition = this.RULE("ooPathCondition", () => {
+    // Optional binding before the path
+    this.OPTION(() => {
+      this.OR([
+        { ALT: () => this.CONSUME(T.BindingVariable, { LABEL: "binding" }) },
+        { ALT: () => this.CONSUME(T.Identifier, { LABEL: "binding" }) },
+      ]);
+      this.CONSUME(T.Colon);
+    });
+    // First segment: /name[ constraints ]
+    this.CONSUME(T.Slash);
+    this.CONSUME2(T.Identifier, { LABEL: "segmentName" });
+    this.CONSUME(T.LBracket);
+    this.SUBRULE(this.balancedBracketContent);
+    this.CONSUME(T.RBracket);
+    // Additional segments: / name[ constraints ]
+    this.MANY(() => {
+      this.CONSUME2(T.Slash);
+      this.CONSUME3(T.Identifier, { LABEL: "segmentName" });
+      this.CONSUME2(T.LBracket);
+      this.SUBRULE2(this.balancedBracketContent);
+      this.CONSUME2(T.RBracket);
+    });
   });
 
   public patternCondition = this.RULE("patternCondition", () => {
@@ -1096,6 +1124,9 @@ function visitLhsCondition(node: CstNode): AST.Condition {
   if (children["evalCondition"]) {
     return visitEvalCondition((children["evalCondition"] as CstNode[])[0]);
   }
+  if (children["ooPathCondition"]) {
+    return visitOoPathCondition((children["ooPathCondition"] as CstNode[])[0]);
+  }
   if (children["patternCondition"]) {
     return visitPatternCondition((children["patternCondition"] as CstNode[])[0]);
   }
@@ -1208,6 +1239,36 @@ function visitEvalCondition(node: CstNode): AST.EvalCondition {
     kind: "EvalCondition",
     expression: "",
     range: mergeRanges(tokenRange(evalToken), tokenRange(lastToken)),
+  };
+}
+
+function visitOoPathCondition(node: CstNode): AST.OOPathCondition {
+  let binding: AST.BindingVariable | undefined;
+  const bindingTokens = node.children["binding"] as IToken[] | undefined;
+  if (bindingTokens?.[0]) {
+    binding = {
+      kind: "BindingVariable",
+      name: bindingTokens[0].image,
+      range: tokenRange(bindingTokens[0]),
+    };
+  }
+
+  const segmentNames = (node.children["segmentName"] as IToken[] | undefined) ?? [];
+  const segments: AST.OOPathSegment[] = segmentNames.map((nameToken) => ({
+    kind: "OOPathSegment",
+    name: nameToken.image,
+    constraints: "",
+    range: tokenRange(nameToken),
+  }));
+
+  const firstToken = findFirstToken(node);
+  const lastToken = findLastToken(node);
+
+  return {
+    kind: "OOPathCondition",
+    binding,
+    segments,
+    range: mergeRanges(tokenRange(firstToken), tokenRange(lastToken)),
   };
 }
 
