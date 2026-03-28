@@ -6,18 +6,11 @@ import { ParseError, Range } from "./ast";
  */
 export function mapParseErrors(errors: IRecognitionException[]): ParseError[] {
   return errors.map((e) => {
-    const token = e.token;
-    const range: Range = {
-      startLine: (token.startLine ?? 1) - 1,
-      startColumn: (token.startColumn ?? 1) - 1,
-      endLine: (token.endLine ?? token.startLine ?? 1) - 1,
-      endColumn: (token.endColumn ?? token.startColumn ?? 1),
-    };
-
+    const range = tokenRange(e.token);
     return {
       message: e.message,
       range,
-      severity: "error",
+      severity: "error" as const,
       code: "DRL009",
     };
   });
@@ -33,12 +26,23 @@ export function tokenRange(token: {
   endLine?: number;
   endColumn?: number;
 }): Range {
+  // Use safeInt to guard against NaN from Chevrotain error-recovery tokens,
+  // where positions are NaN (not null/undefined, so ?? doesn't catch them).
+  const sl = safeInt(token.startLine, 1);
+  const sc = safeInt(token.startColumn, 1);
+  const el = safeInt(token.endLine, sl);
+  const ec = safeInt(token.endColumn, sc);
   return {
-    startLine: (token.startLine ?? 1) - 1,
-    startColumn: (token.startColumn ?? 1) - 1,
-    endLine: (token.endLine ?? token.startLine ?? 1) - 1,
-    endColumn: (token.endColumn ?? token.startColumn ?? 1),
+    startLine: sl - 1,
+    startColumn: sc - 1,
+    endLine: el - 1,
+    endColumn: ec,
   };
+}
+
+/** Return `value` if it is a finite number, otherwise `fallback`. */
+function safeInt(value: number | undefined | null, fallback: number): number {
+  return value != null && Number.isFinite(value) ? value : fallback;
 }
 
 /**

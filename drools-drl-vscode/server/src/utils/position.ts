@@ -6,8 +6,14 @@ import { Range as AstRange } from "../parser/ast";
  */
 export function toLspRange(range: AstRange): LspRange {
   return {
-    start: { line: range.startLine, character: range.startColumn },
-    end: { line: range.endLine, character: range.endColumn },
+    start: {
+      line: Math.max(0, range.startLine),
+      character: Math.max(0, range.startColumn),
+    },
+    end: {
+      line: Math.max(0, range.endLine),
+      character: Math.max(0, range.endColumn),
+    },
   };
 }
 

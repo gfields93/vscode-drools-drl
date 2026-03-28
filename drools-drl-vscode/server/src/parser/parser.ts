@@ -1383,12 +1383,12 @@ export function parse(text: string): AST.DrlFile {
   for (const err of lexResult.errors) {
     ast.errors.push({
       message: err.message,
-      range: {
-        startLine: (err.line ?? 1) - 1,
-        startColumn: (err.column ?? 1) - 1,
-        endLine: (err.line ?? 1) - 1,
-        endColumn: (err.column ?? 1),
-      },
+      range: tokenRange({
+        startLine: err.line,
+        startColumn: err.column,
+        endLine: err.line,
+        endColumn: err.column,
+      }),
       severity: "error",
       code: "DRL009",
     });
