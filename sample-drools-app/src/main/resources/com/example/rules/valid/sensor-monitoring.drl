@@ -1,0 +1,33 @@
+package com.example.rules;
+
+import com.example.model.SensorReading;
+import com.example.model.Alert;
+
+// Alert when temperature exceeds safe threshold
+rule "High Temperature Alert"
+    when
+        $reading : SensorReading( measureUnit == "CELSIUS", value > 100.0 )
+    then
+        insert( new Alert("HIGH_TEMP", "Sensor " + $reading.getSensorId() + " reading: " + $reading.getValue() + "C") );
+        System.out.println("ALERT: High temperature on sensor " + $reading.getSensorId());
+end
+
+// Alert when pressure drops below minimum
+rule "Low Pressure Warning"
+    when
+        $reading : SensorReading( measureUnit == "PSI", value < 15.0 )
+    then
+        insert( new Alert("LOW_PRESSURE", "Sensor " + $reading.getSensorId() + " reading: " + $reading.getValue() + " PSI") );
+        System.out.println("WARNING: Low pressure on sensor " + $reading.getSensorId());
+end
+
+// Critical: temperature AND pressure both abnormal
+rule "Critical System State"
+    salience 100
+    when
+        $temp : SensorReading( measureUnit == "CELSIUS", value > 150.0 )
+        $pressure : SensorReading( measureUnit == "PSI", value < 10.0 )
+    then
+        insert( new Alert("CRITICAL", "System critical: temp=" + $temp.getValue() + "C, pressure=" + $pressure.getValue() + " PSI") );
+        System.out.println("CRITICAL: Multiple sensor thresholds exceeded!");
+end

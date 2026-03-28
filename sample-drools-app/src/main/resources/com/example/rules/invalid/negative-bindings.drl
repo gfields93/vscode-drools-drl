@@ -1,0 +1,46 @@
+package com.example.rules;
+
+import com.example.model.Person;
+import com.example.model.Customer;
+import com.example.model.Alert;
+
+// =====================================================================
+// DRL010: Unused binding — $unused is bound to Customer in the LHS
+// but is never referenced in the RHS actions or text.
+// =====================================================================
+
+rule "Unused Binding on Person"
+    when
+        $p : Person( age > 18 )
+        $unused : Customer( active == true )
+    then
+        System.out.println("Person: " + $p.getName());
+end
+
+// =====================================================================
+// DRL011: Undeclared binding — $order is used in the RHS modify()
+// call but was never bound to anything in the LHS.
+// =====================================================================
+
+rule "Undeclared Binding in Modify"
+    when
+        $c : Customer( tier == "VIP" )
+    then
+        modify( $order ) { setStatus("PRIORITY") };
+end
+
+// DRL011: $reading is used in delete() but not declared in the LHS
+rule "Undeclared Binding in Delete"
+    when
+        $alert : Alert( type == "STALE" )
+    then
+        delete( $reading );
+end
+
+// Clean rule for comparison — no binding warnings expected
+rule "Binding Correctly Used"
+    when
+        $p : Person( age >= 65 )
+    then
+        modify( $p ) { setStatus("SENIOR") };
+end

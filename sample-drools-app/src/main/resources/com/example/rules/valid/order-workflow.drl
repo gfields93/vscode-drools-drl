@@ -1,0 +1,111 @@
+package com.example.rules;
+
+import com.example.model.Order;
+import com.example.model.Customer;
+import com.example.model.LineItem;
+import com.example.model.Alert;
+
+// Discount rules for order processing
+rule "Apply VIP Discount"
+    salience 20
+    no-loop true
+    when
+        $o : Order( status == "NEW", discount == 0 )
+        $c : Customer( this == $o.customer, tier == "VIP" )
+    then
+        double disc = $o.getTotal() * 0.10;
+        modify( $o ) {
+        setDiscount( disc )
+        };
+        System.out.println("Applied 10% VIP discount for " + $c.getName() + " on order " + $o.getOrderId());
+end
+
+rule "Apply Employee Discount"
+    salience 20
+    no-loop true
+    when
+        $o : Order( status == "NEW", discount == 0 )
+        $c : Customer( this == $o.customer, tier == "EMPLOYEE" )
+    then
+        double disc = $o.getTotal() * 0.20;
+        modify( $o ) {
+        setDiscount( disc )
+        };
+        System.out.println("Applied 20% employee discount for " + $c.getName() + " on order " + $o.getOrderId());
+end
+
+// Auto-approve small orders
+rule "Auto Approve Small Orders"
+    agenda-group "approval"
+    no-loop true
+    when
+        $o : Order( status == "NEW", total < 100 )
+    then
+        modify( $o ) {
+        setStatus( "APPROVED" )
+        };
+        System.out.println("Auto-approved small order: " + $o.getOrderId());
+end
+
+// Flag large orders for manual review
+rule "Flag Large Orders for Review"
+    agenda-group "approval"
+    when
+        $o : Order( status == "NEW", total >= 1000 )
+    then
+        modify( $o ) {
+        setStatus( "REVIEW" ),
+        setPriority( "HIGH" )
+        };
+        System.out.println("Flagged for review: " + $o.getOrderId() + " (total: $" + $o.getTotal() + ")");
+end
+
+// Medium orders go straight to processing
+rule "Process Medium Orders"
+    agenda-group "approval"
+    no-loop true
+    when
+        $o : Order( status == "NEW", total >= 100, total < 1000 )
+    then
+        modify( $o ) {
+        setStatus( "PROCESSING" )
+        };
+end
+
+// Detect possible duplicate orders from the same customer
+rule "Duplicate Order Detection"
+    when
+        $o1 : Order( $id1 : orderId, status != "CANCELLED" )
+        $o2 : Order( orderId != $id1, customer == $o1.customer, total == $o1.total, status != "CANCELLED" )
+    then
+        System.out.println("Possible duplicate: " + $o1.getOrderId() + " and " + $o2.getOrderId());
+        insert( new Alert("DUPLICATE_ORDER", $o1.getOrderId() + "," + $o2.getOrderId()) );
+end
+
+// Collect all line items and validate stock
+rule "Check Out of Stock Items"
+    when
+        $o : Order( status == "PROCESSING" )
+        $item : LineItem( order == $o, inStock == false )
+    then
+        modify( $o ) {
+        setStatus( "BACKORDERED" ),
+        setPriority( "MEDIUM" )
+        };
+        System.out.println("Order " + $o.getOrderId() + " backordered: " + $item.getName() + " out of stock");
+end
+
+// All items shipped means order is complete
+rule "All Items Shipped"
+    when
+        $o : Order( status == "PROCESSING" )
+        forall(
+        $item : LineItem( order == $o )
+        LineItem( this == $item, shipped == true )
+        )
+    then
+        modify( $o ) {
+        setStatus( "SHIPPED" )
+        };
+        System.out.println("Order shipped: " + $o.getOrderId());
+end

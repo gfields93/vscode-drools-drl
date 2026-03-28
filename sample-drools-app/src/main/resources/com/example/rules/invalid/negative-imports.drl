@@ -1,0 +1,39 @@
+package com.example.rules;
+
+// DRL103: This class does not exist on the classpath
+import com.example.model.Invoice;
+
+// DRL104: Alert is imported but never used in any rule condition or RHS
+import com.example.model.Alert;
+
+import com.example.model.Person;
+import com.example.model.Order;
+
+// =====================================================================
+// DRL014: SensorReading is used in a pattern but has no import
+// statement. The extension should flag this with:
+// "Type `SensorReading` is not imported."
+// =====================================================================
+
+rule "Unimported Fact Type"
+    when
+        $s : SensorReading( value > 100.0 )
+    then
+        System.out.println("High reading: " + $s);
+end
+
+// Normal rule using imported types — no diagnostics expected
+rule "Valid Order Check"
+    when
+        $o : Order( status == "NEW" )
+    then
+        System.out.println("New order: " + $o.getOrderId());
+end
+
+// This rule uses Person (imported) — no DRL014 expected
+rule "Valid Person Check"
+    when
+        $p : Person( active == true )
+    then
+        System.out.println("Active person: " + $p.getName());
+end

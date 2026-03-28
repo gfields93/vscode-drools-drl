@@ -4,6 +4,8 @@ import { toLspRange } from "../utils/position";
 import * as AST from "../parser/ast";
 import { WorkspaceIndex } from "../workspace/workspace-index";
 import { resolveImport } from "../analysis/import-resolver";
+import { analyzeRules } from "../analysis/rule-analyzer";
+import { checkConstraintTypes } from "../analysis/type-checker";
 
 /**
  * Generate LSP diagnostics from a parsed DRL document.
@@ -45,6 +47,14 @@ export function getDiagnostics(
       checkUnresolvedFieldNames(doc, workspaceIndex, diagnostics);
     }
     checkCrossFileDuplicateRules(doc, workspaceIndex, diagnostics);
+
+    // Type checking (DRL102)
+    if (workspaceIndex.javaTypeIndex.size > 0) {
+      checkConstraintTypes(doc, workspaceIndex, diagnostics);
+    }
+
+    // Rule analysis (DRL202, DRL203)
+    checkRuleAnalysis(doc, workspaceIndex, diagnostics);
   }
 
   return diagnostics;
@@ -355,6 +365,80 @@ function checkCrossFileDuplicateRules(
         source: "drools",
         code: "DRL201",
       });
+    }
+  }
+}
+
+/**
+ * DRL202/DRL203: Rule conflict and shadowing analysis.
+ * Runs workspace-wide analysis and reports diagnostics for rules in this file.
+ */
+function checkRuleAnalysis(
+  doc: DrlDocument,
+  workspaceIndex: WorkspaceIndex,
+  diagnostics: Diagnostic[]
+): void {
+  const result = analyzeRules(workspaceIndex.drlIndex);
+
+  // DRL202: Report conflicts for rules in this file
+  for (const conflict of result.conflicts) {
+    if (conflict.ruleA.uri === doc.uri) {
+      const rule = doc.ast.rules.find((r) => r.name === conflict.ruleA.name);
+      if (rule) {
+        diagnostics.push({
+          range: toLspRange(rule.nameRange),
+          severity: DiagnosticSeverity.Warning,
+          message: conflict.reason,
+          source: "drools",
+          code: "DRL202",
+        });
+      }
+    }
+    if (conflict.ruleB.uri === doc.uri) {
+      const rule = doc.ast.rules.find((r) => r.name === conflict.ruleB.name);
+      if (rule) {
+        diagnostics.push({
+          range: toLspRange(rule.nameRange),
+          severity: DiagnosticSeverity.Warning,
+          message: conflict.reason,
+          source: "drools",
+          code: "DRL202",
+        });
+      }
+    }
+  }
+
+  // DRL203: Report shadowing for rules in this file
+  for (const shadow of result.shadows) {
+    if (shadow.shadowed.uri === doc.uri) {
+      const rule = doc.ast.rules.find((r) => r.name === shadow.shadowed.name);
+      if (rule) {
+        diagnostics.push({
+          range: toLspRange(rule.nameRange),
+          severity: DiagnosticSeverity.Information,
+          message: shadow.reason,
+          source: "drools",
+          code: "DRL203",
+        });
+      }
+    }
+  }
+
+  // DRL204: Report circular dependencies for rules in this file
+  for (const cycle of result.circularDependencies) {
+    for (const member of cycle.cycle) {
+      if (member.uri === doc.uri) {
+        const rule = doc.ast.rules.find((r) => r.name === member.name);
+        if (rule) {
+          diagnostics.push({
+            range: toLspRange(rule.nameRange),
+            severity: DiagnosticSeverity.Warning,
+            message: cycle.reason,
+            source: "drools",
+            code: "DRL204",
+          });
+        }
+      }
     }
   }
 }

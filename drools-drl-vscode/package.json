@@ -144,6 +144,18 @@
       {
         "command": "drools.showTypeInfo",
         "title": "Drools: Show Type Info"
+      },
+      {
+        "command": "drools.analyzeRuleConflicts",
+        "title": "Drools: Analyze Rule Conflicts"
+      },
+      {
+        "command": "drools.showRuleDependencies",
+        "title": "Drools: Show Rule Dependencies"
+      },
+      {
+        "command": "drools.listAllRules",
+        "title": "Drools: List All Rules"
       }
     ]
   },

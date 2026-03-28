@@ -1,0 +1,57 @@
+package com.example.rules;
+
+import com.example.model.Person;
+import com.example.model.Customer;
+import com.example.model.Order;
+
+// =====================================================================
+// DRL101: Field does not exist on resolved Java type.
+// These rules use field names that don't match the actual Java model.
+// The extension should flag each with "Field `x` does not exist on
+// type `Y`" and suggest the closest match where possible.
+//
+// Note: DRL101 only fires when the workspace index has resolved the
+// Java type from the classpath. If types aren't indexed, these rules
+// will not produce DRL101 diagnostics.
+// =====================================================================
+
+// DRL101: "firstName" does not exist on Person — should suggest "name"
+rule "Misspelled Field on Person"
+    when
+        $p : Person( firstName == "Alice" )
+    then
+        System.out.println("Found: " + $p.getName());
+end
+
+// DRL101: "amount" does not exist on Order — should suggest "total"
+rule "Wrong Field Name on Order"
+    when
+        $o : Order( amount > 500.0 )
+    then
+        System.out.println("Large order: " + $o.getOrderId());
+end
+
+// DRL101: "level" does not exist on Customer — no close match,
+// should show available fields list instead
+rule "Nonexistent Field on Customer"
+    when
+        $c : Customer( level == "GOLD" )
+    then
+        System.out.println("Customer: " + $c.getName());
+end
+
+// DRL101: "years" does not exist on Customer — should suggest "loyaltyYears"
+rule "Abbreviated Field Name"
+    when
+        $c : Customer( years > 3 )
+    then
+        System.out.println("Veteran customer: " + $c.getName());
+end
+
+// Clean rule — all fields valid, no diagnostics expected
+rule "Valid Field References"
+    when
+        $p : Person( name != null, age > 0, active == true )
+    then
+        System.out.println($p.getName() + " is active");
+end

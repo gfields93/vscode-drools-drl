@@ -818,7 +818,7 @@ function buildAst(cst: CstNode, text: string): AST.DrlFile {
   // Queries
   const queryNodes = cst.children["queryBlock"] as CstNode[] | undefined;
   if (queryNodes) {
-    result.queries = queryNodes.map(visitQuery);
+    result.queries = queryNodes.map((n) => visitQuery(n, text));
   }
 
   // Rules
@@ -993,7 +993,7 @@ function visitFunction(node: CstNode): AST.FunctionDeclaration {
   };
 }
 
-function visitQuery(node: CstNode): AST.QueryDeclaration {
+function visitQuery(node: CstNode, text: string): AST.QueryDeclaration {
   const nameTokens = (node.children["queryName"] as IToken[]);
   const nameToken = nameTokens[0];
   const name = nameToken.image.replace(/^"|"$/g, "");
@@ -1004,7 +1004,7 @@ function visitQuery(node: CstNode): AST.QueryDeclaration {
     : [];
 
   const condNodes = node.children["lhsCondition"] as CstNode[] | undefined;
-  const conditions: AST.Condition[] = condNodes?.map(visitLhsCondition) ?? [];
+  const conditions: AST.Condition[] = condNodes?.map((n) => visitLhsCondition(n, text)) ?? [];
 
   const queryToken = (node.children["Query"] as IToken[])[0];
   const endToken = (node.children["End"] as IToken[])[0];
@@ -1032,7 +1032,7 @@ function visitRule(node: CstNode, text: string): AST.RuleDeclaration {
 
   // LHS
   const condNodes = node.children["lhsCondition"] as CstNode[] | undefined;
-  const conditions: AST.Condition[] = condNodes?.map(visitLhsCondition) ?? [];
+  const conditions: AST.Condition[] = condNodes?.map((n) => visitLhsCondition(n, text)) ?? [];
 
   const whenTokens = node.children["When"] as IToken[] | undefined;
   const thenTokens = node.children["Then"] as IToken[] | undefined;
@@ -1123,17 +1123,17 @@ function visitAttribute(node: CstNode): AST.RuleAttribute {
   };
 }
 
-function visitLhsCondition(node: CstNode): AST.Condition {
+function visitLhsCondition(node: CstNode, text: string): AST.Condition {
   const children = node.children;
 
   if (children["notCondition"]) {
-    return visitNotCondition((children["notCondition"] as CstNode[])[0]);
+    return visitNotCondition((children["notCondition"] as CstNode[])[0], text);
   }
   if (children["existsCondition"]) {
-    return visitExistsCondition((children["existsCondition"] as CstNode[])[0]);
+    return visitExistsCondition((children["existsCondition"] as CstNode[])[0], text);
   }
   if (children["forallCondition"]) {
-    return visitForallCondition((children["forallCondition"] as CstNode[])[0]);
+    return visitForallCondition((children["forallCondition"] as CstNode[])[0], text);
   }
   if (children["accumulateCondition"]) {
     return visitAccumulateCondition((children["accumulateCondition"] as CstNode[])[0]);
@@ -1142,10 +1142,10 @@ function visitLhsCondition(node: CstNode): AST.Condition {
     return visitEvalCondition((children["evalCondition"] as CstNode[])[0]);
   }
   if (children["ooPathCondition"]) {
-    return visitOoPathCondition((children["ooPathCondition"] as CstNode[])[0]);
+    return visitOoPathCondition((children["ooPathCondition"] as CstNode[])[0], text);
   }
   if (children["patternCondition"]) {
-    return visitPatternCondition((children["patternCondition"] as CstNode[])[0]);
+    return visitPatternCondition((children["patternCondition"] as CstNode[])[0], text);
   }
 
   // Fallback — shouldn't happen with valid parse
@@ -1159,7 +1159,7 @@ function visitLhsCondition(node: CstNode): AST.Condition {
   };
 }
 
-function visitNotCondition(node: CstNode): AST.NotCondition {
+function visitNotCondition(node: CstNode, text: string): AST.NotCondition {
   const notToken = (node.children["Not"] as IToken[])[0];
   const lastToken = findLastToken(node);
 
@@ -1168,9 +1168,9 @@ function visitNotCondition(node: CstNode): AST.NotCondition {
 
   let condition: AST.Condition;
   if (condNodes?.[0]) {
-    condition = visitLhsCondition(condNodes[0]);
+    condition = visitLhsCondition(condNodes[0], text);
   } else if (patternNodes?.[0]) {
-    condition = visitPatternCondition(patternNodes[0]);
+    condition = visitPatternCondition(patternNodes[0], text);
   } else {
     condition = {
       kind: "PatternCondition",
@@ -1188,7 +1188,7 @@ function visitNotCondition(node: CstNode): AST.NotCondition {
   };
 }
 
-function visitExistsCondition(node: CstNode): AST.ExistsCondition {
+function visitExistsCondition(node: CstNode, text: string): AST.ExistsCondition {
   const existsToken = (node.children["Exists"] as IToken[])[0];
   const lastToken = findLastToken(node);
 
@@ -1197,9 +1197,9 @@ function visitExistsCondition(node: CstNode): AST.ExistsCondition {
 
   let condition: AST.Condition;
   if (condNodes?.[0]) {
-    condition = visitLhsCondition(condNodes[0]);
+    condition = visitLhsCondition(condNodes[0], text);
   } else if (patternNodes?.[0]) {
-    condition = visitPatternCondition(patternNodes[0]);
+    condition = visitPatternCondition(patternNodes[0], text);
   } else {
     condition = {
       kind: "PatternCondition",
@@ -1217,11 +1217,11 @@ function visitExistsCondition(node: CstNode): AST.ExistsCondition {
   };
 }
 
-function visitForallCondition(node: CstNode): AST.ForallCondition {
+function visitForallCondition(node: CstNode, text: string): AST.ForallCondition {
   const forallToken = (node.children["Forall"] as IToken[])[0];
   const lastToken = findLastToken(node);
   const condNodes = node.children["lhsCondition"] as CstNode[] | undefined;
-  const conditions = condNodes?.map(visitLhsCondition) ?? [];
+  const conditions = condNodes?.map((n) => visitLhsCondition(n, text)) ?? [];
 
   return {
     kind: "ForallCondition",
@@ -1259,7 +1259,7 @@ function visitEvalCondition(node: CstNode): AST.EvalCondition {
   };
 }
 
-function visitOoPathCondition(node: CstNode): AST.OOPathCondition {
+function visitOoPathCondition(node: CstNode, text: string): AST.OOPathCondition {
   let binding: AST.BindingVariable | undefined;
   const bindingTokens = node.children["binding"] as IToken[] | undefined;
   if (bindingTokens?.[0]) {
@@ -1289,7 +1289,7 @@ function visitOoPathCondition(node: CstNode): AST.OOPathCondition {
   };
 }
 
-function visitPatternCondition(node: CstNode): AST.PatternCondition {
+function visitPatternCondition(node: CstNode, text: string): AST.PatternCondition {
   const factTypeNodes = node.children["factType"] as CstNode[] | undefined;
   const factType = factTypeNodes ? extractQualifiedName(factTypeNodes) : "Unknown";
   const factTypeFirstToken = factTypeNodes?.[0] ? findFirstToken(factTypeNodes[0]) : undefined;
@@ -1308,6 +1308,12 @@ function visitPatternCondition(node: CstNode): AST.PatternCondition {
     };
   }
 
+  // Extract constraint text from the balanced paren content
+  const constraintNodes = node.children["constraints"] as CstNode[] | undefined;
+  const constraints = constraintNodes?.[0]
+    ? extractCstText(constraintNodes[0], text)
+    : "";
+
   const firstToken = findFirstToken(node);
   const lastToken = findLastToken(node);
   const fullRange = mergeRanges(tokenRange(firstToken), tokenRange(lastToken));
@@ -1316,7 +1322,7 @@ function visitPatternCondition(node: CstNode): AST.PatternCondition {
     kind: "PatternCondition",
     binding,
     factType,
-    constraints: "",
+    constraints,
     range: fullRange,
     factTypeRange: factTypeRange ?? fullRange,
   };
@@ -1348,11 +1354,41 @@ function visitRhsAction(node: CstNode): AST.RHSAction {
   else if (node.children["Delete"]) type = "delete";
   else if (node.children["Retract"]) type = "retract";
 
+  // Extract target binding from the action's balanced paren content
+  let targetBinding: string | undefined;
+  if (type !== "other") {
+    targetBinding = findBindingInCst(node);
+  }
+
   return {
     kind: "RHSAction",
     type,
+    targetBinding,
     range: mergeRanges(tokenRange(firstToken), tokenRange(lastToken)),
   };
+}
+
+/**
+ * Recursively search a CST node for a BindingVariable token.
+ */
+function findBindingInCst(node: CstNode): string | undefined {
+  for (const key of Object.keys(node.children || {})) {
+    const children = node.children[key];
+    if (!children) continue;
+    for (const child of children) {
+      if (!child) continue;
+      // Check if this is a BindingVariable token
+      if ("image" in child && (child as IToken).tokenType?.name === "BindingVariable") {
+        return (child as IToken).image;
+      }
+      // Recurse into sub-rules
+      if ("children" in child) {
+        const found = findBindingInCst(child as CstNode);
+        if (found) return found;
+      }
+    }
+  }
+  return undefined;
 }
 
 function visitParameterList(node: CstNode): AST.ParameterDeclaration[] {
@@ -1427,6 +1463,19 @@ function extractTypeReference(node: CstNode): string {
 function extractLiteralValue(node: CstNode): string {
   const firstToken = findFirstToken(node);
   return firstToken.image;
+}
+
+/**
+ * Extract the raw source text spanned by a CST node using token offsets.
+ */
+function extractCstText(node: CstNode, text: string): string {
+  const first = findFirstToken(node);
+  const last = findLastToken(node);
+  if (!first || !last) return "";
+  const start = first.startOffset ?? 0;
+  const end = (last.startOffset ?? 0) + (last.image?.length ?? 0);
+  if (end <= start || !Number.isFinite(start) || !Number.isFinite(end)) return "";
+  return text.substring(start, end).trim();
 }
 
 /**

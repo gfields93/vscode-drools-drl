@@ -31,6 +31,7 @@ import { getDefinition } from "./providers/definition";
 import { getReferences } from "./providers/references";
 import { prepareRename, getRename } from "./providers/rename";
 import { getCodeActions } from "./providers/code-actions";
+import { analyzeRules, getRuleDependencies } from "./analysis/rule-analyzer";
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -211,6 +212,33 @@ connection.onRequest("drools/showTypeInfo", (params: { typeName: string; uri: st
   if (!doc) return null;
   const typeInfo = workspaceIndex.resolveFactType(params.typeName, doc);
   return typeInfo || null;
+});
+
+connection.onRequest("drools/analyzeRuleConflicts", () => {
+  return analyzeRules(workspaceIndex.drlIndex);
+});
+
+connection.onRequest("drools/showRuleDependencies", (params: { ruleName: string }) => {
+  return getRuleDependencies(params.ruleName, workspaceIndex.drlIndex) || null;
+});
+
+connection.onRequest("drools/listAllRules", () => {
+  const rules: { name: string; uri: string; salience: number; agendaGroup: string }[] = [];
+  for (const uri of workspaceIndex.drlIndex.getDocumentUris()) {
+    const doc = workspaceIndex.drlIndex.getDocument(uri);
+    if (!doc) continue;
+    for (const rule of doc.ast.rules) {
+      const salienceAttr = rule.attributes.find((a) => a.name === "salience");
+      const agendaAttr = rule.attributes.find((a) => a.name === "agenda-group");
+      rules.push({
+        name: rule.name,
+        uri,
+        salience: salienceAttr ? Number(salienceAttr.value) || 0 : 0,
+        agendaGroup: agendaAttr ? String(agendaAttr.value) : "",
+      });
+    }
+  }
+  return rules;
 });
 
 // -- Completion -------------------------------------------------------

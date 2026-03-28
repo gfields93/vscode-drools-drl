@@ -1,0 +1,111 @@
+package com.example.rules;
+
+import com.example.model.Person;
+import com.example.model.Order;
+import com.example.model.Customer;
+import com.example.model.SensorReading;
+import com.example.model.Alert;
+
+// =====================================================================
+// CONFLICT DETECTION TESTS
+// These two rules match the same Person fact type with overlapping
+// age constraints (age > 18 overlaps age > 21) but set the status
+// to contradictory values. The analyzer should flag DRL202.
+// =====================================================================
+
+rule "Grant Basic Access"
+    when
+        $p : Person( age > 18 )
+    then
+        modify( $p ) { setStatus("BASIC_ACCESS") };
+end
+
+rule "Grant Full Access"
+    when
+        $p : Person( age > 21 )
+    then
+        modify( $p ) { setStatus("FULL_ACCESS") };
+end
+
+// =====================================================================
+// SHADOWING DETECTION TESTS
+// These two rules have identical conditions on Order but different
+// salience. The higher-salience rule will always fire first, so the
+// lower-salience rule is effectively shadowed. Should flag DRL203.
+// =====================================================================
+
+rule "Priority Order Processing"
+    salience 100
+    when
+        $o : Order( status == "NEW", total > 500 )
+    then
+        modify( $o ) { setPriority("HIGH") };
+end
+
+rule "Standard Order Processing"
+    salience 10
+    when
+        $o : Order( status == "NEW", total > 500 )
+    then
+        modify( $o ) { setPriority("NORMAL") };
+end
+
+// =====================================================================
+// CIRCULAR DEPENDENCY TEST
+// Rule A inserts an Alert when it sees an Order. Rule B inserts an
+// Order when it sees an Alert. This creates a potential infinite loop:
+//   Order -> Alert -> Order -> Alert -> ...
+// The analyzer should detect this circular dependency.
+// =====================================================================
+
+rule "Order Triggers Alert"
+    when
+        $o : Order( status == "FLAGGED" )
+    then
+        insert( new Alert("ORDER_FLAG", "Order flagged: " + $o.getOrderId()) );
+end
+
+rule "Alert Triggers Order"
+    when
+        $a : Alert( type == "ORDER_FLAG" )
+    then
+        insert( new Order("REVIEW-" + $a.getMessage(), null, 0) );
+end
+
+// =====================================================================
+// TYPE CHECKER TESTS (DRL102)
+// These constraints intentionally use wrong types/operators so the
+// type checker can flag them.
+// =====================================================================
+
+// Bug: comparing numeric field 'age' with a string value
+rule "Type Mismatch - String on Numeric"
+    when
+        $p : Person( age == "twenty" )
+    then
+        System.out.println("Bad comparison: " + $p.getName());
+end
+
+// Bug: using numeric comparison operator on string field 'name'
+rule "Type Mismatch - Numeric Op on String"
+    when
+        $p : Person( name > 100 )
+    then
+        System.out.println("Bad operator: " + $p.getName());
+end
+
+// Bug: using 'matches' operator on numeric field 'value'
+rule "Type Mismatch - Matches on Numeric"
+    when
+        $s : SensorReading( value matches "\\d+" )
+    then
+        System.out.println("Bad matches: " + $s.getSensorId());
+end
+
+// Bug: comparing string field 'tier' with a numeric literal
+rule "Type Mismatch - Numeric on String"
+    when
+        $c : Customer( tier == 42 )
+    then
+        System.out.println("Bad comparison: " + $c.getName());
+end

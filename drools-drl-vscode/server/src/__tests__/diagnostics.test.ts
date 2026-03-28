@@ -6,17 +6,17 @@ describe("Diagnostics Provider", () => {
   it("reports no diagnostics for valid DRL", () => {
     const doc = new DrlDocument("test.drl", `
       package com.example;
+      import com.example.model.Person;
       rule "Valid Rule"
           when
-              Person( age > 18 )
+              $p : Person( age > 18 )
           then
               update( $p );
           end
     `);
     const diagnostics = getDiagnostics(doc);
-    // May have parse errors from $p not being bound, but no semantic errors
     const semanticDiags = diagnostics.filter(d => d.code !== "DRL009");
-    expect(semanticDiags.length).toBeLessThanOrEqual(1); // DRL008 for simple action
+    expect(semanticDiags).toHaveLength(0);
   });
 
   it("detects duplicate rule names (DRL006)", () => {

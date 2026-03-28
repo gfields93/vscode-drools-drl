@@ -1,0 +1,42 @@
+package com.example.rules;
+
+import com.example.model.Person;
+import com.example.model.SensorReading;
+import com.example.model.Alert;
+
+// =====================================================================
+// DRL201: Cross-file duplicate rule names.
+// These rule names already exist in other DRL files. The workspace
+// index will flag both the original and this duplicate.
+//
+// "High Temperature Alert" — also in valid/sensor-monitoring.drl
+// "Classify VIP Customer" — also in valid/customer-classification.drl
+// =====================================================================
+
+// DRL201: Duplicate of rule in valid/sensor-monitoring.drl.
+// This is a plausible copy-paste mistake — someone adapted the rule
+// for Fahrenheit but forgot to give it a unique name.
+rule "High Temperature Alert"
+    when
+        $r : SensorReading( measureUnit == "FAHRENHEIT", value > 212.0 )
+    then
+        insert( new Alert("HIGH_TEMP_F", "Sensor " + $r.getSensorId() + " exceeded 212F") );
+end
+
+// DRL201: Duplicate of rule in valid/customer-classification.drl.
+// Uses a different loyalty threshold but the same rule name.
+rule "Classify VIP Customer"
+    when
+        $p : Person( loyaltyYears >= 10 )
+    then
+        $p.setStatus("VIP");
+        update( $p );
+end
+
+// This rule name is unique — no DRL201 expected
+rule "Cross File Unique Rule"
+    when
+        $p : Person( age > 30, active == true )
+    then
+        System.out.println("Mature active person: " + $p.getName());
+end
