@@ -12,6 +12,11 @@ import {
   DocumentFormattingParams,
   DidChangeWatchedFilesParams,
   FileChangeType,
+  DefinitionParams,
+  ReferenceParams,
+  RenameParams,
+  PrepareRenameParams,
+  CodeActionParams,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { DrlDocument } from "./model/drl-document";
@@ -22,6 +27,10 @@ import { getDocumentSymbols } from "./providers/symbols";
 import { formatDocument } from "./providers/formatting";
 import { WorkspaceIndex } from "./workspace/workspace-index";
 import { processFileChanges, FileChangeEvent } from "./workspace/file-watcher";
+import { getDefinition } from "./providers/definition";
+import { getReferences } from "./providers/references";
+import { prepareRename, getRename } from "./providers/rename";
+import { getCodeActions } from "./providers/code-actions";
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -60,6 +69,12 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
         resolveProvider: false,
       },
       hoverProvider: true,
+      definitionProvider: true,
+      referencesProvider: true,
+      renameProvider: { prepareProvider: true },
+      codeActionProvider: {
+        codeActionKinds: ["quickfix"],
+      },
       documentSymbolProvider: true,
       documentFormattingProvider: true,
     },
@@ -220,6 +235,55 @@ connection.onDocumentSymbol((params: DocumentSymbolParams) => {
   const doc = drlDocuments.get(params.textDocument.uri);
   if (!doc) return [];
   return getDocumentSymbols(doc);
+});
+
+// -- Go-to-Definition -------------------------------------------------
+
+connection.onDefinition((params: DefinitionParams) => {
+  const textDoc = documents.get(params.textDocument.uri);
+  const doc = drlDocuments.get(params.textDocument.uri);
+  if (!textDoc || !doc) return null;
+  return getDefinition(textDoc, params.position, doc, workspaceIndex);
+});
+
+// -- Find References --------------------------------------------------
+
+connection.onReferences((params: ReferenceParams) => {
+  const textDoc = documents.get(params.textDocument.uri);
+  const doc = drlDocuments.get(params.textDocument.uri);
+  if (!textDoc || !doc) return [];
+  return getReferences(
+    textDoc,
+    params.position,
+    doc,
+    workspaceIndex,
+    params.context.includeDeclaration
+  );
+});
+
+// -- Rename -----------------------------------------------------------
+
+connection.onPrepareRename((params: PrepareRenameParams) => {
+  const textDoc = documents.get(params.textDocument.uri);
+  const doc = drlDocuments.get(params.textDocument.uri);
+  if (!textDoc || !doc) return null;
+  return prepareRename(textDoc, params.position, doc, workspaceIndex);
+});
+
+connection.onRenameRequest((params: RenameParams) => {
+  const textDoc = documents.get(params.textDocument.uri);
+  const doc = drlDocuments.get(params.textDocument.uri);
+  if (!textDoc || !doc) return null;
+  return getRename(textDoc, params.position, params.newName, doc, workspaceIndex);
+});
+
+// -- Code Actions -----------------------------------------------------
+
+connection.onCodeAction((params: CodeActionParams) => {
+  const textDoc = documents.get(params.textDocument.uri);
+  const doc = drlDocuments.get(params.textDocument.uri);
+  if (!textDoc || !doc) return [];
+  return getCodeActions(textDoc, params, doc, workspaceIndex);
 });
 
 // -- Formatting -------------------------------------------------------

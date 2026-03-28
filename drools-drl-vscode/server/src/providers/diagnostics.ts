@@ -34,13 +34,17 @@ export function getDiagnostics(
   checkUndeclaredBindingsInRhs(doc, diagnostics);
   checkDeprecatedRetract(doc, diagnostics);
   checkInvalidImports(doc, diagnostics);
+  checkUnusedImports(doc, diagnostics);
+  checkUnimportedFactTypes(doc, diagnostics);
 
   // 3. Type-aware and cross-file checks (Phase 3)
   if (workspaceIndex) {
-    checkUnresolvedImports(doc, workspaceIndex, diagnostics);
-    checkUnresolvedFieldNames(doc, workspaceIndex, diagnostics);
+    // Only check unresolved imports when we have types in the index
+    if (workspaceIndex.javaTypeIndex.size > 0) {
+      checkUnresolvedImports(doc, workspaceIndex, diagnostics);
+      checkUnresolvedFieldNames(doc, workspaceIndex, diagnostics);
+    }
     checkCrossFileDuplicateRules(doc, workspaceIndex, diagnostics);
-    checkUnusedImports(doc, workspaceIndex, diagnostics);
   }
 
   return diagnostics;
@@ -360,7 +364,6 @@ function checkCrossFileDuplicateRules(
  */
 function checkUnusedImports(
   doc: DrlDocument,
-  workspaceIndex: WorkspaceIndex,
   diagnostics: Diagnostic[]
 ): void {
   for (const imp of doc.ast.imports) {
@@ -382,6 +385,120 @@ function checkUnusedImports(
         code: "DRL104",
       });
     }
+  }
+}
+
+/**
+ * DRL014: Fact type used in a pattern is not imported or declared.
+ */
+function checkUnimportedFactTypes(
+  doc: DrlDocument,
+  diagnostics: Diagnostic[]
+): void {
+  // Build set of known type names: imported simple names + declared types + java.lang
+  const knownTypes = new Set<string>();
+
+  for (const imp of doc.ast.imports) {
+    if (!imp.target) continue;
+    if (imp.target.endsWith(".*")) {
+      // Wildcard import — we can't enumerate, so skip validation for those packages
+      knownTypes.add("*:" + imp.target.slice(0, -2));
+      continue;
+    }
+    const parts = imp.target.split(".");
+    knownTypes.add(parts[parts.length - 1]);
+  }
+
+  for (const decl of doc.ast.declares) {
+    knownTypes.add(decl.name);
+  }
+
+  // Common java.lang types that are always implicitly available
+  const javaLangTypes = [
+    "Object", "String", "Integer", "Long", "Double", "Float",
+    "Boolean", "Byte", "Short", "Character", "Number", "Comparable",
+  ];
+  for (const t of javaLangTypes) knownTypes.add(t);
+
+  // Collect all fact types used in patterns
+  const checked = new Set<string>();
+  for (const rule of doc.ast.rules) {
+    collectUnimportedTypes(rule.lhs.conditions, knownTypes, checked, doc.uri, diagnostics);
+  }
+  for (const query of doc.ast.queries) {
+    collectUnimportedTypes(query.conditions, knownTypes, checked, doc.uri, diagnostics);
+  }
+}
+
+function collectUnimportedTypes(
+  conditions: AST.Condition[],
+  knownTypes: Set<string>,
+  checked: Set<string>,
+  uri: string,
+  diagnostics: Diagnostic[]
+): void {
+  for (const cond of conditions) {
+    collectUnimportedFromCondition(cond, knownTypes, checked, uri, diagnostics);
+  }
+}
+
+function collectUnimportedFromCondition(
+  cond: AST.Condition,
+  knownTypes: Set<string>,
+  checked: Set<string>,
+  uri: string,
+  diagnostics: Diagnostic[]
+): void {
+  switch (cond.kind) {
+    case "PatternCondition": {
+      const typeName = cond.factType;
+      if (checked.has(typeName)) break;
+      checked.add(typeName);
+
+      // Skip if it's a known type or a fully-qualified name
+      if (knownTypes.has(typeName)) break;
+      if (typeName.includes(".")) break;
+
+      // Check if covered by a wildcard import
+      const hasWildcard = [...knownTypes].some(
+        (k) => k.startsWith("*:")
+      );
+      if (hasWildcard) break;
+
+      diagnostics.push({
+        range: toLspRange(cond.factTypeRange),
+        severity: DiagnosticSeverity.Error,
+        message: `Type \`${typeName}\` is not imported. Add an import statement or declare the type.`,
+        source: "drools",
+        code: "DRL014",
+      });
+      break;
+    }
+    case "NotCondition":
+      collectUnimportedFromCondition(cond.condition, knownTypes, checked, uri, diagnostics);
+      break;
+    case "ExistsCondition":
+      collectUnimportedFromCondition(cond.condition, knownTypes, checked, uri, diagnostics);
+      break;
+    case "AndCondition":
+      collectUnimportedFromCondition(cond.left, knownTypes, checked, uri, diagnostics);
+      collectUnimportedFromCondition(cond.right, knownTypes, checked, uri, diagnostics);
+      break;
+    case "OrCondition":
+      collectUnimportedFromCondition(cond.left, knownTypes, checked, uri, diagnostics);
+      collectUnimportedFromCondition(cond.right, knownTypes, checked, uri, diagnostics);
+      break;
+    case "ForallCondition":
+      for (const c of cond.conditions) {
+        collectUnimportedFromCondition(c, knownTypes, checked, uri, diagnostics);
+      }
+      break;
+    case "FromCondition":
+      collectUnimportedFromCondition(cond.pattern, knownTypes, checked, uri, diagnostics);
+      break;
+    case "AccumulateCondition":
+      collectUnimportedFromCondition(cond.source, knownTypes, checked, uri, diagnostics);
+      break;
   }
 }
 
