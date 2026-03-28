@@ -1,0 +1,134 @@
+// Test: Large file with many interleaved declaration types
+package com.example.workflow;
+
+import com.example.model.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Date;
+
+global org.slf4j.Logger logger;
+global java.util.List auditTrail;
+
+// Type declaration in same file as rules
+declare WorkflowState
+    @role( event )
+    @timestamp( transitionTime )
+    orderId        : String  @key
+    previousState  : String
+    currentState   : String
+    transitionTime : java.util.Date
+    actor          : String
+end
+
+declare trait Approvable
+    approver     : String
+    approvedDate : java.util.Date
+    approved     : boolean = false
+end
+
+// Helper function
+function String formatTransition(String orderId, String prevState, String nextState) {
+    return orderId + ": " + prevState + " -> " + nextState;
+}
+
+function boolean isBusinessHours() {
+    java.util.Calendar cal = java.util.Calendar.getInstance();
+    int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+    return hour >= 9 && hour < 17;
+}
+
+// Query for audit
+query "transitions for order" (String $orderId)
+    $ws : WorkflowState( orderId == $orderId )
+end
+
+// Rules
+rule "New Order Received"
+    salience 100
+    when
+        $o : Order( status == "NEW" )
+        not( WorkflowState( orderId == $o.getOrderId() ) )
+    then
+        insert( new WorkflowState($o.getOrderId(), null, "RECEIVED", new java.util.Date(), "SYSTEM") );
+        logger.info(formatTransition($o.getOrderId(), "NEW", "RECEIVED"));
+end
+
+rule "Auto Approve Small Orders"
+    agenda-group "approval"
+    no-loop true
+    when
+        $o : Order( status == "RECEIVED", total < 100 )
+        $ws : WorkflowState( orderId == $o.getOrderId(), currentState == "RECEIVED" )
+    then
+        modify( $o ) {
+            setStatus( "APPROVED" )
+        };
+        insert( new WorkflowState($o.getOrderId(), "RECEIVED", "APPROVED", new java.util.Date(), "AUTO") );
+        auditTrail.add("Auto-approved: " + $o.getOrderId());
+end
+
+rule "Flag Large Orders for Review"
+    agenda-group "approval"
+    when
+        $o : Order( status == "RECEIVED", total >= 1000 )
+        $ws : WorkflowState( orderId == $o.getOrderId(), currentState == "RECEIVED" )
+        not( WorkflowState( orderId == $o.getOrderId(), currentState == "REVIEW" ) )
+    then
+        modify( $o ) {
+            setStatus( "REVIEW" )
+        };
+        insert( new WorkflowState($o.getOrderId(), "RECEIVED", "REVIEW", new java.util.Date(), "SYSTEM") );
+        logger.info("Flagged for review: " + $o.getOrderId());
+end
+
+rule "Business Hours Processing"
+    when
+        $o : Order( status == "APPROVED" )
+        eval( isBusinessHours() )
+    then
+        modify( $o ) {
+            setStatus( "PROCESSING" )
+        };
+        insert( new WorkflowState($o.getOrderId(), "APPROVED", "PROCESSING", new java.util.Date(), "SYSTEM") );
+end
+
+rule "Collect Stale Orders"
+    timer (cron: 0 0 * * * ?)
+    when
+        $stale : java.util.List() from collect(
+            Order( status == "PROCESSING", lastUpdated < $cutoff )
+        )
+        eval( $stale.size() > 0 )
+    then
+        for (Object obj : $stale) {
+            Order o = (Order) obj;
+            o.setStatus("STALE");
+            update( o );
+        }
+        logger.info("Marked " + $stale.size() + " stale orders");
+end
+
+rule "All Items Shipped"
+    when
+        $o : Order( status == "PROCESSING" )
+        forall(
+            $item : LineItem( order == $o )
+            LineItem( this == $item, shipped == true )
+        )
+    then
+        modify( $o ) {
+            setStatus( "SHIPPED" )
+        };
+        insert( new WorkflowState($o.getOrderId(), "PROCESSING", "SHIPPED", new java.util.Date(), "SYSTEM") );
+        auditTrail.add("Shipped: " + $o.getOrderId());
+end
+
+rule "Duplicate Order Detection"
+    when
+        $o1 : Order( $id1 : orderId, status != "CANCELLED" )
+        $o2 : Order( orderId != $id1, customer == $o1.getCustomer(), total == $o1.getTotal(), status != "CANCELLED" )
+        eval( Math.abs($o1.getCreatedAt().getTime() - $o2.getCreatedAt().getTime()) < 60000 )
+    then
+        logger.info("Possible duplicate: " + $o1.getOrderId() + " and " + $o2.getOrderId());
+        insert( new Alert("DUPLICATE_ORDER", $o1.getOrderId() + "," + $o2.getOrderId()) );
+end

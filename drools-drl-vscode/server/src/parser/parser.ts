@@ -162,7 +162,12 @@ class DrlCstParser extends CstParser {
         ALT: () => {
           this.CONSUME(T.Salience);
           this.OR2([
-            { ALT: () => this.CONSUME(T.IntegerLiteral) },
+            {
+              ALT: () => {
+                this.OPTION5(() => this.CONSUME(T.Minus, { LABEL: "negativeSalience" }));
+                this.CONSUME(T.IntegerLiteral);
+              },
+            },
             { ALT: () => this.CONSUME(T.BindingVariable) },
           ]);
         },
@@ -915,8 +920,8 @@ function visitDeclare(node: CstNode): AST.TypeDeclaration {
 
 function visitField(node: CstNode): AST.FieldDeclaration {
   const nameToken = (node.children["fieldName"] as IToken[])[0];
-  const typeNode = node.children["typeReference"] as CstNode[];
-  const type = extractTypeReference(typeNode[0]);
+  const typeNode = node.children["typeReference"] as CstNode[] | undefined;
+  const type = typeNode?.[0] ? extractTypeReference(typeNode[0]) : "";
 
   const defaultNodes = node.children["literalValue"] as CstNode[] | undefined;
   let defaultValue: string | undefined;
@@ -1088,10 +1093,12 @@ function visitAttribute(node: CstNode): AST.RuleAttribute {
   const trueTokens = node.children["True"] as IToken[] | undefined;
   const falseTokens = node.children["False"] as IToken[] | undefined;
 
+  const isNegative = !!(node.children["negativeSalience"] as IToken[] | undefined)?.length;
+
   if (stringTokens?.[0]) {
     value = stringTokens[0].image.replace(/^"|"$/g, "");
   } else if (intTokens?.[0]) {
-    value = parseInt(intTokens[0].image, 10);
+    value = parseInt(intTokens[0].image, 10) * (isNegative ? -1 : 1);
   } else if (falseTokens?.[0]) {
     value = false;
   } else if (trueTokens?.[0]) {

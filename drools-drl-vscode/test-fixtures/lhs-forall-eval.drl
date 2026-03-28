@@ -1,0 +1,55 @@
+// Test: forall and eval conditions
+package com.example.rules;
+
+import com.example.model.*;
+
+// Simple forall
+rule "All Employees Certified"
+    when
+        forall(
+            Employee( department == "Engineering" )
+            Employee( certified == true )
+        )
+    then
+        System.out.println("All engineers are certified");
+end
+
+// Forall with binding
+rule "Forall With Binding"
+    when
+        forall(
+            $e : Employee( active == true )
+            Employee( this == $e, trainingComplete == true )
+        )
+    then
+        System.out.println("All active employees completed training");
+end
+
+// Simple eval
+rule "Eval Expression"
+    when
+        $p : Person( age > 0 )
+        eval( $p.getAge() >= 21 && $p.getCountry().equals("US") )
+    then
+        System.out.println("US adult (21+)");
+end
+
+// Eval with complex expression
+rule "Eval Complex"
+    when
+        $o : Order( total > 0 )
+        eval( Math.abs($o.getTotal() - $o.getSubtotal()) < 0.01 )
+    then
+        System.out.println("No tax applied");
+end
+
+// Forall and eval combined
+rule "Forall Plus Eval"
+    when
+        forall(
+            $item : LineItem( inStock == true )
+        )
+        eval( System.currentTimeMillis() > 0 )
+    then
+        System.out.println("All items in stock and time is valid");
+end

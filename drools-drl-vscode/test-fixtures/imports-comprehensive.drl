@@ -1,0 +1,29 @@
+// Test: All import variations
+package com.example.rules;
+
+// Simple import
+import com.example.model.Person;
+
+// Wildcard import
+import com.example.model.*;
+
+// Function import
+import function com.example.util.StringUtils.capitalize;
+
+// Import without semicolon
+import com.example.model.Order
+
+// Deeply nested package import
+import org.drools.core.base.evaluators.TimeIntervalParser;
+
+// Import with wildcard and no semicolon
+import java.util.*
+
+rule "Use Imports"
+    when
+        $p : Person( name != null )
+        $o : Order( total > 0 )
+    then
+        String capitalized = capitalize($p.getName());
+        System.out.println(capitalized);
+end

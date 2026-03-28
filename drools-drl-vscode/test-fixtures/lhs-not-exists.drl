@@ -1,0 +1,62 @@
+// Test: not and exists conditions in all forms
+package com.example.rules;
+
+import com.example.model.*;
+
+// Simple not with pattern
+rule "Not Pattern"
+    when
+        $p : Person( age > 18 )
+        not Address( owner == $p )
+    then
+        System.out.println("Person without address");
+end
+
+// Not with parenthesized condition
+rule "Not Parenthesized"
+    when
+        not( Person( age < 18 ) )
+    then
+        System.out.println("No minors found");
+end
+
+// Not with multiple conditions inside parens
+rule "Not Multiple"
+    when
+        not( Person( status == "BANNED" ) and Order( status == "FRAUD" ) )
+    then
+        System.out.println("Clean customer base");
+end
+
+// Simple exists
+rule "Exists Pattern"
+    when
+        exists Person( role == "ADMIN" )
+    then
+        System.out.println("Admin exists");
+end
+
+// Exists with parenthesized pattern
+rule "Exists Parenthesized"
+    when
+        exists( Order( total > 10000 ) )
+    then
+        System.out.println("Big order exists");
+end
+
+// Combined not and exists
+rule "Not And Exists Combined"
+    when
+        exists Person( role == "MANAGER" )
+        not( Order( status == "OVERDUE" ) )
+    then
+        System.out.println("Manager present, no overdue orders");
+end
+
+// Double negation
+rule "Double Not"
+    when
+        not( not( Person( active == true ) ) )
+    then
+        System.out.println("Active person exists (double negation)");
+end

@@ -1,0 +1,34 @@
+// Test: Should trigger DRL007, DRL008, DRL013 warnings
+package com.example.rules;
+
+import com.example.model.*;
+
+// DRL007: Empty when clause (fires unconditionally)
+rule "Always Fires Warning"
+    when
+    then
+        System.out.println("This always fires");
+end
+
+// DRL008: Empty then clause (no actions)
+rule "Empty Actions Warning"
+    when
+        Person( age > 100 )
+    then
+end
+
+// DRL013: Deprecated retract
+rule "Deprecated Retract Warning"
+    when
+        $temp : TemporaryFact( expired == true )
+    then
+        retract( $temp );
+end
+
+// Clean rule for comparison (no warnings expected)
+rule "Clean Rule"
+    when
+        $p : Person( name != null )
+    then
+        System.out.println("Clean: " + $p.getName());
+end

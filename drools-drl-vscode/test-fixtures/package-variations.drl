@@ -1,0 +1,11 @@
+// Test: Package declaration variations
+package org.drools.compiler.test.rules;
+
+import org.drools.compiler.test.model.Fact;
+
+rule "Simple with deep package"
+    when
+        Fact( value > 0 )
+    then
+        System.out.println("Matched");
+end

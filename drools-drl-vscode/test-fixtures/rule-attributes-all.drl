@@ -1,0 +1,109 @@
+// Test: Every rule attribute the parser supports
+package com.example.rules;
+
+import com.example.model.Order;
+
+// Salience with positive value
+rule "Salience Positive"
+    salience 100
+    when
+        Order( status == "URGENT" )
+    then
+        System.out.println("urgent");
+end
+
+// Salience with negative value
+rule "Salience Negative"
+    salience -50
+    when
+        Order( status == "LOW" )
+    then
+        System.out.println("low priority");
+end
+
+// Boolean attributes without explicit value (defaults to true)
+rule "Boolean Defaults"
+    no-loop
+    lock-on-active
+    auto-focus
+    enabled
+    when
+        Order( status == "NEW" )
+    then
+        System.out.println("defaults");
+end
+
+// Boolean attributes with explicit false
+rule "Boolean False"
+    no-loop false
+    lock-on-active false
+    auto-focus false
+    enabled false
+    when
+        Order( status == "DISABLED" )
+    then
+        System.out.println("disabled");
+end
+
+// String-valued attributes
+rule "String Attributes"
+    agenda-group "processing"
+    activation-group "exclusive"
+    ruleflow-group "flow-1"
+    dialect "java"
+    calendars "weekdays"
+    when
+        Order( status == "QUEUED" )
+    then
+        System.out.println("string attrs");
+end
+
+// Date-range attributes
+rule "Date Range"
+    date-effective "01-Jan-2026"
+    date-expires "31-Dec-2026"
+    when
+        Order( status == "SEASONAL" )
+    then
+        System.out.println("seasonal");
+end
+
+// Numeric-valued attributes
+rule "Numeric Attributes"
+    duration 3000
+    when
+        Order( status == "DELAYED" )
+    then
+        System.out.println("delayed");
+end
+
+// Timer with cron expression
+rule "Cron Timer"
+    timer (cron: 0 0/15 * * * ?)
+    when
+        Order( status == "PENDING" )
+    then
+        System.out.println("periodic check");
+end
+
+// Timer with interval expression
+rule "Interval Timer"
+    timer (int: 5s 30s)
+    when
+        Order( status == "RETRY" )
+    then
+        System.out.println("retry");
+end
+
+// Multiple attributes combined
+rule "Combined Attributes"
+    salience 50
+    no-loop true
+    lock-on-active true
+    agenda-group "priority"
+    dialect "java"
+    when
+        Order( status == "COMBINED" )
+    then
+        System.out.println("combined");
+end

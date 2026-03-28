@@ -1,0 +1,42 @@
+// Test: Rule inheritance with extends
+package com.example.rules;
+
+import com.example.model.*;
+
+// Base rule
+rule "Base Discount"
+    when
+        $o : Order( total > 100 )
+    then
+        $o.setDiscount(0.05);
+        update( $o );
+end
+
+// Single-level inheritance
+rule "Premium Discount" extends "Base Discount"
+    when
+        $c : Customer( tier == "PREMIUM" )
+    then
+        $o.setDiscount(0.15);
+        update( $o );
+end
+
+// Another child of the same parent
+rule "Employee Discount" extends "Base Discount"
+    when
+        $c : Customer( isEmployee == true )
+    then
+        $o.setDiscount(0.25);
+        update( $o );
+end
+
+// Extended rule with attributes
+rule "VIP Discount" extends "Base Discount"
+    salience 100
+    no-loop true
+    when
+        $c : Customer( tier == "VIP" )
+    then
+        $o.setDiscount(0.30);
+        update( $o );
+end

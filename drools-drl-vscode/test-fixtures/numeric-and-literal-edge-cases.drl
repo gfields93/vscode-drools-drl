@@ -1,0 +1,78 @@
+// Test: Numeric literals, string literals, and boolean/null values
+package com.example.rules;
+
+import com.example.model.*;
+
+// Integer literals
+rule "Integer Literals"
+    when
+        $o : Order( quantity == 0, total > 999999 )
+    then
+        System.out.println("Integer match");
+end
+
+// Long literals
+rule "Long Literals"
+    when
+        $o : Order( id == 9223372036854775807L )
+    then
+        System.out.println("Long match");
+end
+
+// Float literals
+rule "Float Literals"
+    when
+        $o : Order(
+            total > 99.99,
+            discount == 0.0,
+            weight <= 5.5f,
+            tax == 7.25d
+        )
+    then
+        System.out.println("Float match");
+end
+
+// String with escapes
+rule "String Escapes"
+    when
+        $p : Person( name == "O\"Brien", address != null )
+    then
+        System.out.println("Escaped quote matched");
+end
+
+// Boolean and null comparisons
+rule "Boolean And Null"
+    when
+        $p : Person(
+            active == true,
+            deleted == false,
+            middleName == null,
+            lastName != null
+        )
+    then
+        System.out.println("Boolean/null match");
+end
+
+// Negative salience
+rule "Negative Salience"
+    salience -999
+    when
+        $o : Order( priority == "LOWEST" )
+    then
+        System.out.println("Lowest priority");
+end
+
+// Multiple comparisons
+rule "All Comparison Operators"
+    when
+        $o : Order(
+            total > 0,
+            total >= 10,
+            total < 10000,
+            total <= 9999,
+            status == "ACTIVE",
+            category != "BANNED"
+        )
+    then
+        System.out.println("All comparisons passed");
+end

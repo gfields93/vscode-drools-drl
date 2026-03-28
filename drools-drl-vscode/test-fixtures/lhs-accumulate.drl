@@ -1,0 +1,63 @@
+// Test: accumulate in various forms
+package com.example.rules;
+
+import com.example.model.*;
+
+// Accumulate as top-level condition
+rule "Top Level Accumulate"
+    when
+        accumulate(
+            $o : Order( status == "COMPLETED" ),
+            $total : sum( $o.getTotal() )
+        )
+    then
+        System.out.println("Total: " + $total);
+end
+
+// Accumulate with from
+rule "Accumulate From"
+    when
+        $total : Number() from accumulate(
+            Order( status == "SHIPPED" ),
+            sum( $o.getTotal() )
+        )
+    then
+        System.out.println("Shipped total: " + $total);
+end
+
+// Accumulate with multiple functions
+rule "Accumulate Multi Function"
+    when
+        accumulate(
+            $o : Order( status == "ACTIVE" ),
+            $count : count( $o ),
+            $avg : average( $o.getTotal() ),
+            $min : min( $o.getTotal() ),
+            $max : max( $o.getTotal() )
+        )
+    then
+        System.out.println("Count: " + $count + " Avg: " + $avg);
+end
+
+// Accumulate with init-action-result
+rule "Accumulate IAR"
+    when
+        accumulate(
+            $item : LineItem( category == "ELECTRONICS" );
+            $total : sum( $item.getPrice() ),
+            $count : count( $item )
+        )
+    then
+        System.out.println("Electronics: " + $count + " items, total: " + $total);
+end
+
+// Accumulate with constraints on result
+rule "Accumulate with Result Constraint"
+    when
+        $count : Number( intValue > 5 ) from accumulate(
+            Order( status == "PENDING" ),
+            count( 1 )
+        )
+    then
+        System.out.println("More than 5 pending: " + $count);
+end
