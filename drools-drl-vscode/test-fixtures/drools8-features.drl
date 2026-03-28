@@ -1,0 +1,51 @@
+package com.example.rules;
+
+import com.example.model.*;
+
+// Rule unit declaration (Drools 8+)
+unit OrderUnit;
+
+// OOPath notation (Drools 8+/10+)
+rule "OOPath Basic"
+    when
+        $o : /orders[ status == "PENDING" ]
+    then
+        System.out.println("Pending order found via OOPath");
+end
+
+rule "OOPath Nested"
+    when
+        $i : /orders[ status == "ACTIVE" ] / items[ price > 100 ]
+    then
+        System.out.println("Expensive item found: " + $i.getName());
+end
+
+rule "OOPath with Constraint"
+    when
+        /customers[ tier == "GOLD" ] / orders[ total > 500 ] / items[ category == "Electronics" ]
+    then
+        System.out.println("Gold customer electronics order");
+end
+
+// Sliding window with events (Drools 8+)
+rule "Recent High Value Orders"
+    when
+        $o : Order( total > 1000 ) over window:time( 1h )
+    then
+        System.out.println("High value order in last hour: " + $o.getOrderId());
+end
+
+rule "Last Ten Orders"
+    when
+        $o : Order() over window:length( 10 )
+    then
+        System.out.println("Recent order: " + $o.getOrderId());
+end
+
+// Entry point
+rule "Stream Processing"
+    when
+        $e : Event() from entry-point "SensorStream"
+    then
+        System.out.println("Event received from sensor: " + $e.getType());
+end

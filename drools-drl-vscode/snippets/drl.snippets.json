@@ -1,0 +1,324 @@
+{
+  "Rule Block": {
+    "prefix": "rule",
+    "body": [
+      "rule \"${1:Rule Name}\"",
+      "    ${2:// attributes}",
+      "    when",
+      "        ${3:// conditions}",
+      "    then",
+      "        ${4:// actions}",
+      "end"
+    ],
+    "description": "Create a new Drools rule"
+  },
+
+  "Rule with Attributes": {
+    "prefix": "ruleattr",
+    "body": [
+      "rule \"${1:Rule Name}\"",
+      "    salience ${2:0}",
+      "    no-loop ${3|true,false|}",
+      "    agenda-group \"${4:group-name}\"",
+      "    when",
+      "        ${5:// conditions}",
+      "    then",
+      "        ${6:// actions}",
+      "end"
+    ],
+    "description": "Create a new Drools rule with common attributes"
+  },
+
+  "Query Block": {
+    "prefix": "query",
+    "body": [
+      "query \"${1:Query Name}\" (${2:Type} \\$${3:param})",
+      "    ${4:// patterns}",
+      "end"
+    ],
+    "description": "Create a named query"
+  },
+
+  "Function Block": {
+    "prefix": "function",
+    "body": [
+      "function ${1:void} ${2:functionName}(${3:params}) {",
+      "    ${4:// body}",
+      "}"
+    ],
+    "description": "Create a Java function in DRL"
+  },
+
+  "Type Declaration": {
+    "prefix": "declare",
+    "body": [
+      "declare ${1:TypeName}",
+      "    ${2:fieldName} : ${3:String}",
+      "end"
+    ],
+    "description": "Declare a new fact type"
+  },
+
+  "Trait Declaration": {
+    "prefix": "declaretrait",
+    "body": [
+      "declare trait ${1:TraitName}",
+      "    ${2:fieldName} : ${3:String}",
+      "end"
+    ],
+    "description": "Declare a new trait"
+  },
+
+  "Package Declaration": {
+    "prefix": "package",
+    "body": [
+      "package ${1:com.example.rules};"
+    ],
+    "description": "Package declaration"
+  },
+
+  "Import Statement": {
+    "prefix": "import",
+    "body": [
+      "import ${1:com.example.model.Type};"
+    ],
+    "description": "Import statement"
+  },
+
+  "Function Import": {
+    "prefix": "importfunc",
+    "body": [
+      "import function ${1:com.example.util.ClassName.methodName};"
+    ],
+    "description": "Import a static function"
+  },
+
+  "Global Declaration": {
+    "prefix": "global",
+    "body": [
+      "global ${1:java.util.List} ${2:globalName};"
+    ],
+    "description": "Declare a global variable"
+  },
+
+  "Fact Pattern": {
+    "prefix": "pattern",
+    "body": [
+      "${1:Type}( ${2:constraint} )"
+    ],
+    "description": "Fact pattern with constraint"
+  },
+
+  "Bound Pattern": {
+    "prefix": "bind",
+    "body": [
+      "\\$${1:var} : ${2:Type}( ${3:constraint} )"
+    ],
+    "description": "Fact pattern with binding variable"
+  },
+
+  "Not Exists": {
+    "prefix": "notexists",
+    "body": [
+      "not ${1:Type}( ${2:constraint} )"
+    ],
+    "description": "Negated existence check"
+  },
+
+  "Exists": {
+    "prefix": "exists",
+    "body": [
+      "exists ${1:Type}( ${2:constraint} )"
+    ],
+    "description": "Existence check"
+  },
+
+  "From Clause": {
+    "prefix": "from",
+    "body": [
+      "\\$${1:var} : ${2:Type}( ${3:constraint} ) from ${4:\\$source}"
+    ],
+    "description": "Pattern with from data source"
+  },
+
+  "Collect": {
+    "prefix": "collect",
+    "body": [
+      "\\$${1:list} : ${2:java.util.List}() from collect(",
+      "    ${3:Type}( ${4:constraint} )",
+      ")"
+    ],
+    "description": "Collect aggregation"
+  },
+
+  "Accumulate": {
+    "prefix": "accumulate",
+    "body": [
+      "accumulate(",
+      "    ${1:\\$item} : ${2:Type}( ${3:constraint} ),",
+      "    \\$${4:result} : ${5|count,sum,avg,min,max|}( ${6:\\$item.field} )",
+      ")"
+    ],
+    "description": "Accumulate pattern with built-in function"
+  },
+
+  "Accumulate Shorthand": {
+    "prefix": "accshort",
+    "body": [
+      "\\$${1:result} : ${2|Number,Long,Double,Integer|}() from accumulate(",
+      "    ${3:Type}( ${4:constraint} ),",
+      "    ${5|count,sum,avg,min,max|}( ${6:value} )",
+      ")"
+    ],
+    "description": "Shorthand accumulate with built-in function"
+  },
+
+  "Eval": {
+    "prefix": "eval",
+    "body": [
+      "eval( ${1:expression} )"
+    ],
+    "description": "Eval expression"
+  },
+
+  "For All": {
+    "prefix": "forall",
+    "body": [
+      "forall(",
+      "    ${1:Type}( ${2:baseConstraint} )",
+      "    ${3:Type}( ${4:additionalConstraint} )",
+      ")"
+    ],
+    "description": "For all pattern"
+  },
+
+  "Sliding Window": {
+    "prefix": "over",
+    "body": [
+      "${1:Type}( ${2:constraint} ) over window:${3|time,length|}( ${4:value} )"
+    ],
+    "description": "Pattern with sliding window"
+  },
+
+  "Insert Fact": {
+    "prefix": "insert",
+    "body": [
+      "insert( new ${1:Type}(${2:args}) );"
+    ],
+    "description": "Insert a new fact"
+  },
+
+  "Insert Logical": {
+    "prefix": "insertlog",
+    "body": [
+      "insertLogical( new ${1:Type}(${2:args}) );"
+    ],
+    "description": "Insert a logical fact"
+  },
+
+  "Modify Fact": {
+    "prefix": "modify",
+    "body": [
+      "modify( \\$${1:binding} ) {",
+      "    set${2:Property}( ${3:value} )",
+      "};"
+    ],
+    "description": "Modify a bound fact"
+  },
+
+  "Update Fact": {
+    "prefix": "update",
+    "body": [
+      "update( \\$${1:binding} );"
+    ],
+    "description": "Update a bound fact"
+  },
+
+  "Delete Fact": {
+    "prefix": "delete",
+    "body": [
+      "delete( \\$${1:binding} );"
+    ],
+    "description": "Delete/retract a bound fact"
+  },
+
+  "Logger Statement": {
+    "prefix": "log",
+    "body": [
+      "System.out.println(\"${1:message}\" + ${2:\\$var});"
+    ],
+    "description": "Print statement for debugging"
+  },
+
+  "Salience": {
+    "prefix": "salience",
+    "body": [
+      "salience ${1:0}"
+    ],
+    "description": "Set rule salience (priority)"
+  },
+
+  "No Loop": {
+    "prefix": "noloop",
+    "body": [
+      "no-loop true"
+    ],
+    "description": "Prevent rule re-firing on own changes"
+  },
+
+  "Lock on Active": {
+    "prefix": "lockonactive",
+    "body": [
+      "lock-on-active true"
+    ],
+    "description": "Lock rule when agenda group is active"
+  },
+
+  "Agenda Group": {
+    "prefix": "agendagroup",
+    "body": [
+      "agenda-group \"${1:group-name}\""
+    ],
+    "description": "Assign rule to an agenda group"
+  },
+
+  "Activation Group": {
+    "prefix": "activationgroup",
+    "body": [
+      "activation-group \"${1:group-name}\""
+    ],
+    "description": "Assign rule to an activation group (mutex)"
+  },
+
+  "Ruleflow Group": {
+    "prefix": "ruleflowgroup",
+    "body": [
+      "ruleflow-group \"${1:group-name}\""
+    ],
+    "description": "Assign rule to a ruleflow group"
+  },
+
+  "Timer": {
+    "prefix": "timer",
+    "body": [
+      "timer (${1|cron,int|}: ${2:expression})"
+    ],
+    "description": "Set rule timer (cron or interval)"
+  },
+
+  "Date Effective": {
+    "prefix": "dateeff",
+    "body": [
+      "date-effective \"${1:dd-MMM-yyyy}\""
+    ],
+    "description": "Set rule effective date"
+  },
+
+  "Date Expires": {
+    "prefix": "dateexp",
+    "body": [
+      "date-expires \"${1:dd-MMM-yyyy}\""
+    ],
+    "description": "Set rule expiration date"
+  }
+}

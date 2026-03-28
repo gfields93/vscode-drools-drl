@@ -1,0 +1,53 @@
+package com.example.rules;
+
+import com.example.model.Person;
+import com.example.model.Address;
+
+// Function returning a value
+function String formatName(String first, String last) {
+    if (first == null || last == null) {
+        return "Unknown";
+    }
+    return first.trim() + " " + last.trim();
+}
+
+// Void function
+function void logMessage(String level, String message) {
+    System.out.println("[" + level + "] " + message);
+}
+
+// Function with collections
+function java.util.List filterAdults(java.util.List people) {
+    java.util.List adults = new java.util.ArrayList();
+    for (Object obj : people) {
+        Person p = (Person) obj;
+        if (p.getAge() >= 18) {
+            adults.add(p);
+        }
+    }
+    return adults;
+}
+
+// Simple query
+query "people over age" (int $minAge)
+    $p : Person( age > $minAge )
+end
+
+// Query with multiple patterns
+query "people at address" (String $city)
+    $a : Address( city == $city )
+    $p : Person( address == $a )
+end
+
+// Unparameterized query
+query "all adults"
+    Person( age >= 18 )
+end
+
+// Using query in a rule
+rule "Process Query Results"
+    when
+        $p : Person() from entry-point "PeopleStream"
+    then
+        logMessage("INFO", "Person entered: " + formatName($p.getFirstName(), $p.getLastName()));
+end

@@ -1,0 +1,39 @@
+package com.example.model;
+
+// Simple type declaration
+declare Person
+    name : String
+    age  : int
+    address : Address
+end
+
+// Type with metadata annotations
+declare Order
+    @role( event )
+    @timestamp( createdAt )
+    @expires( 30d )
+    orderId    : String  @key
+    total      : double
+    status     : String
+    createdAt  : java.util.Date
+end
+
+// Type with inheritance
+declare PremiumOrder extends Order
+    discountRate : double = 0.15
+    loyaltyPoints : int
+end
+
+// Trait declaration
+declare trait Serializable
+    serialId : long
+end
+
+// Type declaration with complex fields
+declare ShoppingCart
+    @author( "dev-team" )
+    items     : java.util.List<LineItem>
+    customer  : Customer
+    createdAt : java.util.Date
+    active    : boolean = true
+end

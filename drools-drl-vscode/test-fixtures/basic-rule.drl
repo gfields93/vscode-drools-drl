@@ -1,0 +1,27 @@
+package com.example.rules;
+
+import com.example.model.Person;
+import com.example.model.Address;
+
+global java.util.List results;
+
+rule "Check Adult Status"
+    salience 10
+    no-loop true
+    when
+        $p : Person( age >= 18, name != null )
+    then
+        $p.setStatus("adult");
+        update( $p );
+        results.add( $p.getName() );
+end
+
+rule "Greet Person"
+    agenda-group "greetings"
+    when
+        $p : Person( name != null )
+        not Address( owner == $p )
+    then
+        System.out.println("Hello, " + $p.getName());
+        insert( new Address($p, "Unknown") );
+end

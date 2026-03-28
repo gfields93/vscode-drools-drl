@@ -1,0 +1,80 @@
+package com.example.rules;
+
+import com.example.model.Order;
+
+// Rule with salience
+rule "High Priority Rule"
+    salience 100
+    when
+        $o : Order( status == "URGENT" )
+    then
+        System.out.println("Urgent order: " + $o.getOrderId());
+end
+
+// Rule with no-loop and lock-on-active
+rule "Prevent Infinite Loop"
+    no-loop true
+    lock-on-active true
+    when
+        $o : Order( status == "PROCESSING" )
+    then
+        modify( $o ) {
+            setStatus( "PROCESSED" )
+        };
+end
+
+// Rule with agenda and activation groups
+rule "Discount Rule A"
+    agenda-group "discounts"
+    activation-group "exclusive-discount"
+    auto-focus true
+    when
+        $o : Order( total > 100 )
+    then
+        modify( $o ) {
+            setDiscount( 0.10 )
+        };
+end
+
+// Rule with ruleflow group
+rule "Validation Step"
+    ruleflow-group "validation-flow"
+    when
+        $o : Order( validated == false )
+    then
+        $o.setValidated( true );
+        update( $o );
+end
+
+// Rule with timer
+rule "Periodic Cleanup"
+    timer (cron: 0 0/5 * * * ?)
+    when
+        $o : Order( status == "STALE" )
+    then
+        delete( $o );
+end
+
+// Rule with date constraints
+rule "Holiday Promotion"
+    date-effective "01-Dec-2026"
+    date-expires "31-Dec-2026"
+    when
+        $o : Order( total > 50 )
+    then
+        modify( $o ) {
+            setDiscount( 0.20 )
+        };
+end
+
+// Rule with dialect and calendars
+rule "Business Hours Only"
+    dialect "java"
+    calendars "business-hours"
+    enabled true
+    duration 5000
+    when
+        $o : Order( status == "NEW" )
+    then
+        System.out.println("Processing during business hours");
+end

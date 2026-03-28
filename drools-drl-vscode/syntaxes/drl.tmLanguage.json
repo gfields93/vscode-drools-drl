@@ -1,0 +1,417 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Drools",
+  "scopeName": "source.drools",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#package-declaration" },
+    { "include": "#import-statement" },
+    { "include": "#global-declaration" },
+    { "include": "#declare-block" },
+    { "include": "#function-block" },
+    { "include": "#query-block" },
+    { "include": "#rule-block" },
+    { "include": "#strings" },
+    { "include": "#numeric-literals" },
+    { "include": "#boolean-null" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.drools",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.line.hash.drools",
+          "match": "#.*$"
+        },
+        {
+          "name": "comment.block.drools",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "captures": {
+            "0": { "name": "punctuation.definition.comment.drools" }
+          }
+        }
+      ]
+    },
+
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.drools",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.drools",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.drools",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.drools",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+
+    "numeric-literals": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.drools",
+          "match": "\\b\\d+\\.\\d+([eE][+-]?\\d+)?[fFdD]?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.drools",
+          "match": "\\b\\d+[lLfFdD]?\\b"
+        }
+      ]
+    },
+
+    "boolean-null": {
+      "patterns": [
+        {
+          "name": "constant.language.drools",
+          "match": "\\b(true|false|null)\\b"
+        }
+      ]
+    },
+
+    "annotations": {
+      "patterns": [
+        {
+          "name": "storage.type.annotation.drools",
+          "match": "@\\w+",
+          "captures": {
+            "0": { "name": "storage.type.annotation.drools" }
+          }
+        }
+      ]
+    },
+
+    "package-declaration": {
+      "patterns": [
+        {
+          "name": "meta.package.drools",
+          "match": "^\\s*(package)\\s+([\\w.]+)",
+          "captures": {
+            "1": { "name": "keyword.other.package.drools" },
+            "2": { "name": "entity.name.namespace.drools" }
+          }
+        }
+      ]
+    },
+
+    "import-statement": {
+      "patterns": [
+        {
+          "name": "meta.import.drools",
+          "match": "^\\s*(import)(?:\\s+(function|static))?\\s+([\\w.*]+)",
+          "captures": {
+            "1": { "name": "keyword.other.import.drools" },
+            "2": { "name": "keyword.other.import.modifier.drools" },
+            "3": { "name": "entity.name.type.import.drools" }
+          }
+        }
+      ]
+    },
+
+    "global-declaration": {
+      "patterns": [
+        {
+          "name": "meta.global.drools",
+          "match": "^\\s*(global)\\s+([\\w.<>,\\s]+?)\\s+(\\w+)\\s*;?",
+          "captures": {
+            "1": { "name": "keyword.other.global.drools" },
+            "2": { "name": "storage.type.drools" },
+            "3": { "name": "variable.other.global.drools" }
+          }
+        }
+      ]
+    },
+
+    "declare-block": {
+      "patterns": [
+        {
+          "name": "meta.declaration.drools",
+          "begin": "^\\s*(declare)(?:\\s+(trait))?\\s+(\\w+)(?:\\s+(extends)\\s+(\\w+))?",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.declaration.drools" },
+            "2": { "name": "keyword.other.declaration.trait.drools" },
+            "3": { "name": "entity.name.type.drools" },
+            "4": { "name": "keyword.other.declaration.extends.drools" },
+            "5": { "name": "entity.name.type.inherited.drools" }
+          },
+          "end": "^\\s*(end)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.other.declaration.end.drools" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#annotations" },
+            { "include": "#strings" },
+            {
+              "name": "meta.field.declaration.drools",
+              "match": "^\\s*(\\w+)\\s*:\\s*([\\w.<>,\\s]+?)(?:\\s*=\\s*(.+))?\\s*$",
+              "captures": {
+                "1": { "name": "variable.other.field.drools" },
+                "2": { "name": "storage.type.drools" },
+                "3": {
+                  "patterns": [
+                    { "include": "#strings" },
+                    { "include": "#numeric-literals" },
+                    { "include": "#boolean-null" }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    "function-block": {
+      "patterns": [
+        {
+          "name": "meta.function.drools",
+          "begin": "^\\s*(function)\\s+([\\w<>\\[\\]]+)\\s+(\\w+)\\s*\\(",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.definition.drools" },
+            "2": { "name": "storage.type.return.drools" },
+            "3": { "name": "entity.name.function.drools" }
+          },
+          "end": "^\\s*(end)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control.definition.end.drools" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "source.java" }
+          ]
+        }
+      ]
+    },
+
+    "query-block": {
+      "patterns": [
+        {
+          "name": "meta.query.drools",
+          "begin": "^\\s*(query)\\s+\"?([\\w\\s-]+)\"?(?:\\s*\\(([^)]*)\\))?",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.definition.drools" },
+            "2": { "name": "entity.name.function.drools" },
+            "3": {
+              "patterns": [
+                {
+                  "match": "([\\w.<>\\[\\]]+)\\s+(\\$?\\w+)",
+                  "captures": {
+                    "1": { "name": "storage.type.drools" },
+                    "2": { "name": "variable.parameter.drools" }
+                  }
+                }
+              ]
+            }
+          },
+          "end": "^\\s*(end)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control.definition.end.drools" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#lhs-patterns" }
+          ]
+        }
+      ]
+    },
+
+    "rule-block": {
+      "patterns": [
+        {
+          "name": "meta.rule.drools",
+          "begin": "^\\s*(rule)\\s+\"([^\"]+)\"",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.rule.drools" },
+            "2": { "name": "entity.name.function.rule.drools" }
+          },
+          "end": "^\\s*(end)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control.rule.end.drools" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#rule-attributes" },
+            { "include": "#annotations" },
+            { "include": "#rule-extends" },
+            { "include": "#rule-lhs" },
+            { "include": "#rule-rhs" }
+          ]
+        }
+      ]
+    },
+
+    "rule-extends": {
+      "patterns": [
+        {
+          "match": "\\b(extends)\\s+\"?([\\w\\s-]+)\"?",
+          "captures": {
+            "1": { "name": "keyword.other.declaration.drools" },
+            "2": { "name": "entity.name.function.rule.drools" }
+          }
+        }
+      ]
+    },
+
+    "rule-attributes": {
+      "patterns": [
+        {
+          "match": "^\\s*(salience)\\s+(-?\\d+)",
+          "captures": {
+            "1": { "name": "support.type.attribute.drools" },
+            "2": { "name": "constant.numeric.drools" }
+          }
+        },
+        {
+          "match": "^\\s*(no-loop|lock-on-active|auto-focus|enabled)\\s+(true|false)",
+          "captures": {
+            "1": { "name": "support.type.attribute.drools" },
+            "2": { "name": "constant.language.drools" }
+          }
+        },
+        {
+          "match": "^\\s*(agenda-group|activation-group|ruleflow-group|dialect)\\s+\"([^\"]+)\"",
+          "captures": {
+            "1": { "name": "support.type.attribute.drools" },
+            "2": { "name": "string.quoted.double.drools" }
+          }
+        },
+        {
+          "match": "^\\s*(date-effective|date-expires)\\s+\"([^\"]+)\"",
+          "captures": {
+            "1": { "name": "support.type.attribute.drools" },
+            "2": { "name": "string.quoted.double.drools" }
+          }
+        },
+        {
+          "match": "^\\s*(duration|timer)\\s*\\(([^)]*)\\)",
+          "captures": {
+            "1": { "name": "support.type.attribute.drools" },
+            "2": { "name": "string.unquoted.attribute-value.drools" }
+          }
+        },
+        {
+          "match": "^\\s*(calendars)\\s+\"([^\"]+)\"",
+          "captures": {
+            "1": { "name": "support.type.attribute.drools" },
+            "2": { "name": "string.quoted.double.drools" }
+          }
+        }
+      ]
+    },
+
+    "rule-lhs": {
+      "name": "meta.rule.lhs.drools",
+      "begin": "^\\s*(when)\\s*:?\\s*$",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.flow.drools" }
+      },
+      "end": "(?=^\\s*then\\b)",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#lhs-patterns" }
+      ]
+    },
+
+    "rule-rhs": {
+      "name": "meta.rule.rhs.drools",
+      "begin": "^\\s*(then)\\s*$",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.flow.drools" }
+      },
+      "end": "(?=^\\s*end\\b)",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#rhs-action-keywords" },
+        { "include": "source.java" }
+      ]
+    },
+
+    "lhs-patterns": {
+      "patterns": [
+        { "include": "#strings" },
+        { "include": "#numeric-literals" },
+        { "include": "#boolean-null" },
+        { "include": "#annotations" },
+        {
+          "comment": "Condition keywords: not, exists, forall, eval, from, collect, accumulate, over, entry-point, window",
+          "name": "keyword.operator.condition.drools",
+          "match": "\\b(not|exists|and|or|from|collect|accumulate|forall|eval|over|entry-point|window)\\b"
+        },
+        {
+          "comment": "Special DRL operators",
+          "name": "keyword.operator.special.drools",
+          "match": "\\b(matches|not\\s+matches|memberOf|not\\s+memberOf|contains|not\\s+contains|soundslike|str|in|not\\s+in)\\b"
+        },
+        {
+          "comment": "Comparison operators",
+          "name": "keyword.operator.comparison.drools",
+          "match": "==|!=|>=|<=|>|<"
+        },
+        {
+          "comment": "Logical operators",
+          "name": "keyword.operator.logical.drools",
+          "match": "&&|\\|\\|"
+        },
+        {
+          "comment": "Binding variable: $var : or var :",
+          "match": "(\\$\\w+|\\w+)\\s*(:)\\s*(?=[A-Z])",
+          "captures": {
+            "1": { "name": "variable.other.binding.drools" },
+            "2": { "name": "keyword.operator.bind.drools" }
+          }
+        },
+        {
+          "comment": "Pattern type: CapitalizedName( ... )",
+          "match": "\\b([A-Z]\\w*)\\s*(?=\\()",
+          "captures": {
+            "1": { "name": "entity.name.type.pattern.drools" }
+          }
+        },
+        {
+          "comment": "OOPath notation /path[constraint]",
+          "match": "/\\w+",
+          "name": "variable.other.oopath.drools"
+        },
+        {
+          "comment": "Binding variable reference ($ prefix)",
+          "name": "variable.other.binding.drools",
+          "match": "\\$\\w+"
+        },
+        {
+          "comment": "Field access in constraints",
+          "match": "(?<=[(.&|,\\s])([a-z]\\w*)(?=\\s*[=!<>]|\\s*\\b(matches|memberOf|contains|soundslike|str|in)\\b)",
+          "captures": {
+            "1": { "name": "variable.other.property.drools" }
+          }
+        }
+      ]
+    },
+
+    "rhs-action-keywords": {
+      "patterns": [
+        {
+          "name": "support.function.action.drools",
+          "match": "\\b(insert|insertLogical|update|modify|delete|retract)\\b"
+        }
+      ]
+    }
+  }
+}

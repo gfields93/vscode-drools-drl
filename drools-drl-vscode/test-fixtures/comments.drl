@@ -1,0 +1,44 @@
+package com.example.rules;
+
+// This is a single-line comment with double slash
+# This is a single-line comment with hash
+
+/*
+ * This is a multi-line block comment.
+ * It spans several lines.
+ */
+
+import com.example.model.Person; // inline comment after import
+
+rule "Comment Test Rule"
+    // Comment inside rule, before attributes
+    salience 10  // inline comment after attribute
+    when
+        // Comment in LHS
+        $p : Person(
+            age > 18  // inline comment in constraint
+            /* block comment inside constraint */
+        )
+        # Hash comment in LHS
+    then
+        // Comment in RHS
+        System.out.println("Hello"); // inline comment in action
+        /* Block comment
+           spanning multiple lines
+           in the RHS */
+end
+
+/*
+ * Another block comment between rules
+ */
+
+# Rule with hash comments throughout
+rule "Hash Comment Rule"
+    # salience 5
+    when
+        # condition here
+        Person( name != null )
+    then
+        # action here
+        System.out.println("Hash comments work");
+end

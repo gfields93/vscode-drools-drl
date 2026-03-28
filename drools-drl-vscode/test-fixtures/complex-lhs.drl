@@ -1,0 +1,62 @@
+package com.example.rules;
+
+import com.example.model.*;
+import java.util.List;
+import java.util.ArrayList;
+
+rule "Complex LHS Patterns"
+    when
+        // Nested not
+        not( Person( age < 18 ) and Address( city == "London" ) )
+
+        // Exists check
+        exists Order( status == "PENDING", total > 100.0 )
+
+        // Accumulate with binding
+        $total : Number() from accumulate(
+            $o : Order( status == "COMPLETED" ),
+            sum( $o.getTotal() )
+        )
+
+        // Collect into a list
+        $pendingOrders : java.util.List() from collect(
+            Order( status == "PENDING" )
+        )
+
+        // From clause
+        $item : LineItem( quantity > 0 ) from $order.getItems()
+
+        // Forall
+        forall(
+            $e : Employee( department == "Engineering" )
+            Employee( this == $e, certified == true )
+        )
+
+        // Eval
+        eval( $total.doubleValue() > 1000.0 )
+
+        // Multiple constraints with special operators
+        $c : Customer(
+            name matches "J.*",
+            tags contains "VIP",
+            category memberOf $validCategories,
+            status soundslike "active"
+        )
+
+        // In operator
+        $p : Product( category in ("Electronics", "Books", "Toys") )
+    then
+        System.out.println("Complex rule fired");
+        insert( new Alert("Complex conditions met") );
+end
+
+rule "Accumulate with Init Action Result"
+    when
+        accumulate(
+            $o : Order( status == "SHIPPED" ),
+            $count : count( $o ),
+            $avg : avg( $o.getTotal() )
+        )
+    then
+        System.out.println("Shipped: " + $count + ", avg: " + $avg);
+end

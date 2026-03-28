@@ -1,0 +1,86 @@
+package com.example.rules;
+
+import com.example.model.*;
+
+global java.util.Map<String, java.util.List<Integer>> complexGlobal;
+
+// Rule with empty when clause
+rule "Always Fires"
+    when
+    then
+        System.out.println("No conditions");
+end
+
+// Rule with very long constraint expression
+rule "Complex Constraint"
+    when
+        $p : Person(
+            (age >= 18 && age <= 65) || (status == "SPECIAL"),
+            name != null && name.length() > 0,
+            address != null,
+            address.getCity() != null
+        )
+    then
+        insert( new Result("complex constraint matched") );
+end
+
+// Rule name with special characters
+rule "Rule - With (Special) Characters & More!"
+    when
+        Person( name matches "O'Brien|McDonald's" )
+    then
+        System.out.println("Special name matched");
+end
+
+// Multiline string in constraint
+rule "Multiline Expression"
+    when
+        $p : Person(
+            name == "John"
+                || name == "Jane"
+                || name == "Bob"
+        )
+    then
+        System.out.println("Found: " + $p.getName());
+end
+
+// Rule with extends
+rule "Child Rule" extends "Complex Constraint"
+    when
+        $a : Address( city == "London" )
+    then
+        System.out.println("Extended rule fired in London");
+end
+
+// Multiple bindings in one pattern
+rule "Multiple Bindings"
+    when
+        $p : Person( $name : name, $age : age, age > 21 )
+    then
+        System.out.println($name + " is " + $age + " years old");
+end
+
+// Nested modify block
+rule "Complex Modify"
+    when
+        $o : Order( status == "NEW" )
+    then
+        modify( $o ) {
+            setStatus( "PROCESSING" ),
+            setTimestamp( new java.util.Date() ),
+            setProcessor( "auto-system" )
+        };
+end
+
+// Numeric edge cases
+rule "Numeric Literals"
+    when
+        $o : Order(
+            total > 99.99,
+            quantity == 1000L,
+            weight <= 5.5f,
+            discount != 0.0d
+        )
+    then
+        System.out.println("Order total: " + $o.getTotal());
+end
