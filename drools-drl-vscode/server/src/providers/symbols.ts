@@ -1,4 +1,4 @@
-import { DocumentSymbol, SymbolKind } from "vscode-languageserver";
+import { DocumentSymbol, Range, SymbolKind } from "vscode-languageserver";
 import { DrlDocument } from "../model/drl-document";
 import { toLspRange } from "../utils/position";
 
@@ -53,12 +53,13 @@ export function getDocumentSymbols(doc: DrlDocument): DocumentSymbol[] {
         selectionRange: toLspRange(field.range),
       });
     }
+    const declRange = toLspRange(decl.range);
     symbols.push({
       name: decl.name,
       detail: decl.isTrait ? "trait" : decl.superType ? `extends ${decl.superType}` : "declare",
       kind: SymbolKind.Class,
-      range: toLspRange(decl.range),
-      selectionRange: toLspRange(decl.nameRange),
+      range: declRange,
+      selectionRange: clampSelection(declRange, toLspRange(decl.nameRange)),
       children,
     });
   }
@@ -100,39 +101,60 @@ export function getDocumentSymbols(doc: DrlDocument): DocumentSymbol[] {
       });
     }
 
+    const ruleRange = toLspRange(rule.range);
     symbols.push({
       name: rule.name,
       detail: rule.parentRule ? `extends "${rule.parentRule}"` : undefined,
       kind: SymbolKind.Function,
-      range: toLspRange(rule.range),
-      selectionRange: toLspRange(rule.nameRange),
+      range: ruleRange,
+      selectionRange: clampSelection(ruleRange, toLspRange(rule.nameRange)),
       children,
     });
   }
 
   // Queries
   for (const query of doc.ast.queries) {
+    const queryRange = toLspRange(query.range);
     symbols.push({
       name: query.name,
       detail: query.parameters.length > 0
         ? `(${query.parameters.map((p) => `${p.type} ${p.name}`).join(", ")})`
         : undefined,
       kind: SymbolKind.Interface,
-      range: toLspRange(query.range),
-      selectionRange: toLspRange(query.nameRange),
+      range: queryRange,
+      selectionRange: clampSelection(queryRange, toLspRange(query.nameRange)),
     });
   }
 
   // Functions
   for (const func of doc.ast.functions) {
+    const funcRange = toLspRange(func.range);
     symbols.push({
       name: func.name,
       detail: `${func.returnType}(${func.parameters.map((p) => p.type).join(", ")})`,
       kind: SymbolKind.Method,
-      range: toLspRange(func.range),
-      selectionRange: toLspRange(func.nameRange),
+      range: funcRange,
+      selectionRange: clampSelection(funcRange, toLspRange(func.nameRange)),
     });
   }
 
   return symbols;
+}
+
+/**
+ * Ensure selectionRange is contained within fullRange.
+ * VS Code rejects document symbols where this invariant is violated.
+ */
+function clampSelection(fullRange: Range, selectionRange: Range): Range {
+  const startBefore =
+    selectionRange.start.line < fullRange.start.line ||
+    (selectionRange.start.line === fullRange.start.line &&
+      selectionRange.start.character < fullRange.start.character);
+  const endAfter =
+    selectionRange.end.line > fullRange.end.line ||
+    (selectionRange.end.line === fullRange.end.line &&
+      selectionRange.end.character > fullRange.end.character);
+
+  if (!startBefore && !endAfter) return selectionRange;
+  return fullRange;
 }

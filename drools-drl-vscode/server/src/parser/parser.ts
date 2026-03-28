@@ -985,7 +985,10 @@ function visitRule(node: CstNode): AST.RuleDeclaration {
   const endTokens = node.children["End"] as IToken[] | undefined;
   const endToken = endTokens?.[0];
 
-  const fallbackRange = tokenRange(ruleToken);
+  // Use the full extent of the node so nameRange is always contained in range
+  const nodeLastToken = findLastToken(node);
+  const fullRange = mergeRanges(tokenRange(ruleToken), tokenRange(nodeLastToken));
+  const fallbackRange = fullRange;
 
   const lhs: AST.LHSBlock = {
     kind: "LHSBlock",
@@ -1015,9 +1018,7 @@ function visitRule(node: CstNode): AST.RuleDeclaration {
     attributes,
     lhs,
     rhs,
-    range: endToken
-      ? mergeRanges(tokenRange(ruleToken), tokenRange(endToken))
-      : tokenRange(ruleToken),
+    range: fullRange,
     nameRange: tokenRange(nameToken),
   };
 }
