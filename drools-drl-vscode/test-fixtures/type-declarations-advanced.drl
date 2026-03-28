@@ -1,0 +1,71 @@
+// Test: Advanced type declarations
+package com.example.model;
+
+import java.util.*;
+
+// Event type with role and timestamps
+declare SensorReading
+    @role( event )
+    @timestamp( readingTime )
+    @expires( 24h )
+    sensorId    : String  @key
+    readingTime : java.util.Date  @key
+    value       : double
+    measureUnit : String = "celsius"
+    validFor    : long = 3600000
+end
+
+// Type with multiple metadata annotations
+declare AuditEntry
+    @author( "audit-system" )
+    @since( "1.0" )
+    @serializable
+    id        : long  @key
+    action    : String
+    actor     : String
+    timestamp : java.util.Date
+    details   : String = ""
+end
+
+// Trait with multiple fields
+declare trait Billable
+    invoiceNumber : String
+    billedAmount  : double
+    currency      : String = "USD"
+    taxExempt     : boolean = false
+end
+
+// Another trait
+declare trait Trackable
+    trackingId : String
+    carrier    : String
+    status     : String = "UNKNOWN"
+end
+
+// Type extending another with default values
+declare PremiumCustomer extends Customer
+    discountTier   : int = 3
+    personalRep    : String
+    annualSpend    : double = 0.0
+    joinDate       : java.util.Date
+end
+
+// Type with complex generic fields
+declare DataBundle
+    entries    : java.util.Map<String, java.util.List<DataEntry>>
+    metadata   : java.util.Map<String, String>
+    tags       : java.util.Set<String>
+    scores     : double[]
+end
+
+// Minimal type declaration with single field
+declare Marker
+    tag : String
+end
+
+// Type with metadata and single field
+declare ConfigFlag
+    @role( event )
+    @expires( 1h )
+    name : String  @key
+end

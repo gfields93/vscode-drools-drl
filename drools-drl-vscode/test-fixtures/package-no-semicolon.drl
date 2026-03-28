@@ -1,0 +1,11 @@
+// Test: Package without semicolon (valid in DRL)
+package com.example.nosemicolon
+
+import com.example.model.Event
+
+rule "No Semicolon Package"
+    when
+        Event( type == "CLICK" )
+    then
+        System.out.println("Click event");
+end

@@ -1,0 +1,74 @@
+// Test: Special DRL operators in constraints
+package com.example.rules;
+
+import com.example.model.*;
+
+// matches operator (regex)
+rule "Matches Regex"
+    when
+        $p : Person( name matches "^[A-Z][a-z]+$" )
+    then
+        System.out.println("Valid capitalized name: " + $p.getName());
+end
+
+// contains operator
+rule "Contains Check"
+    when
+        $c : Customer( tags contains "VIP" )
+    then
+        System.out.println("VIP customer found");
+end
+
+// memberOf operator
+rule "MemberOf Check"
+    when
+        $validStatuses : java.util.List()
+        $o : Order( status memberOf $validStatuses )
+    then
+        System.out.println("Valid status");
+end
+
+// soundslike operator
+rule "Soundslike Match"
+    when
+        $p : Person( name soundslike "Smith" )
+    then
+        System.out.println("Sounds like Smith: " + $p.getName());
+end
+
+// in operator with literal list
+rule "In Operator"
+    when
+        $p : Product( category in ("Electronics", "Books", "Toys", "Games") )
+    then
+        System.out.println("Product in target category");
+end
+
+// not in operator
+rule "Not In Operator"
+    when
+        $o : Order( status in ("CANCELLED", "REFUNDED", "REJECTED") )
+    then
+        System.out.println("Terminal status");
+end
+
+// Multiple special operators in one pattern
+rule "Combined Special Operators"
+    when
+        $c : Customer(
+            name matches "[A-Za-z ]+",
+            tags contains "ACTIVE",
+            tier memberOf $allowedTiers,
+            nickname soundslike "Johnny"
+        )
+    then
+        System.out.println("All special operators matched");
+end
+
+// str operator
+rule "Str Operator"
+    when
+        $p : Person( name str[startsWith] "Dr." )
+    then
+        System.out.println("Doctor found");
+end

@@ -1,0 +1,96 @@
+// Test: All RHS action types
+package com.example.rules;
+
+import com.example.model.*;
+
+// insert action
+rule "Insert New Fact"
+    when
+        $p : Person( age >= 18, hasAccount == false )
+    then
+        insert( new Account($p, "STANDARD") );
+end
+
+// insertLogical action
+rule "Insert Logical"
+    when
+        $o : Order( total > 1000, status == "APPROVED" )
+    then
+        insertLogical( new HighValueFlag($o.getOrderId()) );
+end
+
+// update action
+rule "Update Fact"
+    when
+        $p : Person( status == "PENDING" )
+    then
+        $p.setStatus("ACTIVE");
+        update( $p );
+end
+
+// delete action
+rule "Delete Fact"
+    when
+        $o : Order( status == "CANCELLED", archived == false )
+    then
+        $o.setArchived(true);
+        delete( $o );
+end
+
+// retract action (deprecated)
+rule "Retract Deprecated"
+    when
+        $temp : TemporaryFact( expired == true )
+    then
+        retract( $temp );
+end
+
+// modify action with single setter
+rule "Modify Single"
+    when
+        $o : Order( status == "NEW" )
+    then
+        modify( $o ) {
+            setStatus( "PROCESSING" )
+        };
+end
+
+// modify action with multiple setters
+rule "Modify Multiple"
+    when
+        $o : Order( status == "PROCESSING" )
+    then
+        modify( $o ) {
+            setStatus( "SHIPPED" ),
+            setShippedDate( new java.util.Date() ),
+            setTrackingNumber( generateTracking() )
+        };
+end
+
+// Multiple actions in one rule
+rule "Multiple Actions"
+    when
+        $p : Person( status == "NEW" )
+    then
+        $p.setStatus("ACTIVE");
+        update( $p );
+        insert( new WelcomeEmail($p) );
+        insert( new AuditLog("NEW_USER", $p.getName()) );
+        System.out.println("New user activated: " + $p.getName());
+end
+
+// Complex Java code in RHS
+rule "Complex RHS Code"
+    when
+        $orders : java.util.List() from collect( Order( status == "PENDING" ) )
+    then
+        for (Object obj : $orders) {
+            Order o = (Order) obj;
+            if (o.getTotal() > 500) {
+                o.setPriority("HIGH");
+            } else {
+                o.setPriority("NORMAL");
+            }
+            update( o );
+        }
+end

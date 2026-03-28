@@ -1,0 +1,68 @@
+// Test: from and collect expressions
+package com.example.rules;
+
+import com.example.model.*;
+import java.util.List;
+import java.util.ArrayList;
+
+// Collect into a list
+rule "Collect Orders"
+    when
+        $orders : java.util.List() from collect(
+            Order( status == "PENDING" )
+        )
+    then
+        System.out.println("Pending orders: " + $orders.size());
+end
+
+// From with method call
+rule "From Method"
+    when
+        $cart : ShoppingCart( active == true )
+        $item : LineItem( price > 50 ) from $cart.getItems()
+    then
+        System.out.println("Expensive item: " + $item.getName());
+end
+
+// From with global reference
+rule "From Global"
+    when
+        $result : ValidationResult() from globalValidator.validate()
+    then
+        System.out.println("Validation: " + $result.getStatus());
+end
+
+// From with chained method calls
+rule "From Chained"
+    when
+        $report : Report() from reportService.getTeam().getReports()
+    then
+        System.out.println("Report: " + $report.getTitle());
+end
+
+// Collect with qualified type
+rule "Collect Qualified Type"
+    when
+        $alerts : java.util.ArrayList() from collect(
+            Alert( severity == "HIGH", acknowledged == false )
+        )
+    then
+        System.out.println("Unacknowledged high alerts: " + $alerts.size());
+end
+
+// From entry-point
+rule "Entry Point Stream"
+    when
+        $e : SensorEvent() from entry-point "IoTStream"
+    then
+        System.out.println("Sensor: " + $e.getSensorId());
+end
+
+// Multiple from entry-points
+rule "Dual Stream"
+    when
+        $temp : TemperatureReading( value > 100 ) from entry-point "TempSensors"
+        $alarm : AlarmEvent() from entry-point "AlarmStream"
+    then
+        System.out.println("High temp with alarm");
+end

@@ -1,0 +1,79 @@
+// Test: Function declarations with various signatures and bodies
+package com.example.rules;
+
+import com.example.model.*;
+import java.util.*;
+
+// Simple void function
+function void log(String message) {
+    System.out.println("[LOG] " + message);
+}
+
+// Function with primitive return type
+function int calculateAge(java.util.Date birthDate) {
+    long diff = System.currentTimeMillis() - birthDate.getTime();
+    return (int) (diff / (1000L * 60 * 60 * 24 * 365));
+}
+
+// Function with complex return type
+function java.util.Map<String, Object> buildContext(String key, Object value) {
+    java.util.Map<String, Object> ctx = new java.util.HashMap<>();
+    ctx.put(key, value);
+    ctx.put("timestamp", new java.util.Date());
+    return ctx;
+}
+
+// Function with no parameters
+function String getSystemId() {
+    return System.getProperty("system.id", "DEFAULT");
+}
+
+// Function with multiple parameters
+function double calculateDiscount(double total, int loyaltyYears, String tier) {
+    double base = 0.0;
+    if ("VIP".equals(tier)) {
+        base = 0.15;
+    } else if ("PREMIUM".equals(tier)) {
+        base = 0.10;
+    }
+    base += loyaltyYears * 0.005;
+    if (total > 1000) {
+        base += 0.05;
+    }
+    return Math.min(base, 0.50);
+}
+
+// Function with loops and conditionals
+function java.util.List filterAndSort(java.util.List items, double minPrice) {
+    java.util.List result = new java.util.ArrayList();
+    for (Object obj : items) {
+        LineItem item = (LineItem) obj;
+        if (item.getPrice() >= minPrice) {
+            result.add(item);
+        }
+    }
+    java.util.Collections.sort(result);
+    return result;
+}
+
+// Function with try-catch
+function boolean safeParse(String value) {
+    try {
+        Integer.parseInt(value);
+        return true;
+    } catch (NumberFormatException e) {
+        return false;
+    }
+}
+
+// Rule that uses declared functions
+rule "Apply Discount"
+    when
+        $c : Customer( loyaltyYears > 0 )
+        $o : Order( total > 50, customer == $c )
+    then
+        double discount = calculateDiscount($o.getTotal(), $c.getLoyaltyYears(), $c.getTier());
+        $o.setDiscount(discount);
+        update( $o );
+        log("Applied " + (discount * 100) + "% discount to order " + $o.getOrderId());
+end

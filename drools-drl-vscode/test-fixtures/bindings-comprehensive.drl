@@ -1,0 +1,67 @@
+// Test: Binding variable patterns
+package com.example.rules;
+
+import com.example.model.*;
+
+// Simple fact binding
+rule "Simple Binding"
+    when
+        $p : Person( age > 18 )
+    then
+        System.out.println($p.getName());
+end
+
+// Field binding inside constraint
+rule "Field Binding"
+    when
+        $p : Person( $name : name, $age : age, age > 21 )
+    then
+        System.out.println($name + " is " + $age);
+end
+
+// Multiple fact bindings
+rule "Multiple Bindings"
+    when
+        $p : Person( name != null )
+        $a : Address( owner == $p, $city : city )
+        $o : Order( customer == $p, $total : total )
+    then
+        System.out.println($p.getName() + " in " + $city + " ordered $" + $total);
+end
+
+// Binding used in from
+rule "Binding In From"
+    when
+        $cart : ShoppingCart( active == true )
+        $item : LineItem( quantity > 0 ) from $cart.getItems()
+    then
+        System.out.println("Item: " + $item.getName());
+end
+
+// Binding without dollar sign (plain identifier)
+rule "Plain Identifier Binding"
+    when
+        person : Person( age > 18 )
+    then
+        System.out.println(person.getName());
+end
+
+// Bindings in modify
+rule "Binding In Modify"
+    when
+        $o : Order( status == "NEW", $items : items )
+    then
+        modify( $o ) {
+            setStatus( "PROCESSING" ),
+            setItemCount( $items.size() )
+        };
+end
+
+// Binding used in insert
+rule "Binding In Insert"
+    when
+        $p : Person( $name : name, status == "NEW" )
+    then
+        insert( new WelcomeMessage($name) );
+        insert( new AuditLog("REGISTERED", $name) );
+end

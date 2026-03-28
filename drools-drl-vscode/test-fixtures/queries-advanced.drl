@@ -1,0 +1,56 @@
+// Test: Query declarations in various forms
+package com.example.rules;
+
+import com.example.model.*;
+
+// Query with no parameters
+query "all active orders"
+    Order( status == "ACTIVE" )
+end
+
+// Query with single parameter
+query "orders by status" (String $status)
+    $o : Order( status == $status )
+end
+
+// Query with multiple parameters
+query "orders in range" (double $minTotal, double $maxTotal, String $status)
+    $o : Order(
+        total >= $minTotal,
+        total <= $maxTotal,
+        status == $status
+    )
+end
+
+// Query with multiple patterns
+query "customer orders" (String $customerId)
+    $c : Customer( id == $customerId )
+    $o : Order( customer == $c )
+    $items : java.util.List() from collect( LineItem( order == $o ) )
+end
+
+// Query with not condition
+query "customers without orders"
+    $c : Customer( active == true )
+    not( Order( customer == $c ) )
+end
+
+// Query with exists
+query "departments with managers"
+    $d : Department( active == true )
+    exists( Employee( department == $d, role == "MANAGER" ) )
+end
+
+// Query with identifier name (not string)
+query unparameterizedQuery
+    Person( age >= 18 )
+end
+
+// Rule using a query result
+rule "Process Active Orders"
+    when
+        $o : Order() from entry-point "OrderStream"
+        exists( Order( this == $o, status == "ACTIVE" ) )
+    then
+        System.out.println("Active order: " + $o.getOrderId());
+end

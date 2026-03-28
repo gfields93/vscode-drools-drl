@@ -2,7 +2,7 @@
   "name": "drools-drl",
   "displayName": "Drools DRL",
   "description": "Language support for Drools Rule Language (.drl) files",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "tbd",
   "license": "MIT",
   "engines": {
@@ -23,6 +23,7 @@
     "type": "git",
     "url": ""
   },
+  "main": "./out/client/src/extension.js",
   "contributes": {
     "languages": [
       {
@@ -55,6 +56,62 @@
         "language": "drools",
         "path": "./snippets/drl.snippets.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Drools DRL",
+      "properties": {
+        "drools.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Traces communication between VS Code and the Drools language server"
+        },
+        "drools.validation.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable real-time DRL validation"
+        },
+        "drools.validation.debounceMs": {
+          "type": "number",
+          "default": 200,
+          "description": "Delay in ms before re-validating after a document change"
+        },
+        "drools.completion.showDeprecated": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show deprecated DRL constructs in completion suggestions"
+        },
+        "drools.formatting.indentSize": {
+          "type": "number",
+          "default": 4,
+          "description": "Number of spaces per indentation level"
+        },
+        "drools.formatting.insertFinalNewline": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ensure file ends with a newline"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -b",
+    "watch": "tsc -b -w",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "package": "npx @vscode/vsce package"
+  },
+  "dependencies": {
+    "chevrotain": "^11.0.3",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.2",
+    "typescript": "^5.3.3",
+    "vitest": "^3.1.1"
   }
 }

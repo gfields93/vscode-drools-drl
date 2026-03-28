@@ -1,0 +1,42 @@
+// Test: and/or connectives between conditions
+package com.example.rules;
+
+import com.example.model.*;
+
+// Explicit and between patterns
+rule "Explicit And"
+    when
+        Person( age > 18 ) and
+        Address( city == "London" )
+    then
+        System.out.println("London adult");
+end
+
+// Explicit or between patterns
+rule "Explicit Or"
+    when
+        Person( status == "VIP" ) or
+        Person( loyaltyYears > 10 )
+    then
+        System.out.println("Priority customer");
+end
+
+// Mixed and/or
+rule "Mixed Connectives"
+    when
+        Person( age > 18 ) and
+        Order( total > 100 ) or
+        Order( priority == "HIGH" )
+    then
+        System.out.println("Mixed logic");
+end
+
+// Implicit and (consecutive patterns)
+rule "Implicit And"
+    when
+        $p : Person( name != null )
+        $a : Address( owner == $p )
+        Order( customer == $p, status == "ACTIVE" )
+    then
+        System.out.println("All conditions met implicitly");
+end

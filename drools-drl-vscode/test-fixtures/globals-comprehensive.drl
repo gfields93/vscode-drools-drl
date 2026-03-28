@@ -1,0 +1,27 @@
+// Test: Various global variable declarations
+package com.example.rules;
+
+import java.util.*;
+
+// Simple type global
+global String applicationName;
+
+// Collection global
+global java.util.List results;
+
+// Map with nested generics
+global java.util.Map<String, java.util.List<Integer>> categoryScores;
+
+// Array type global
+global int[] thresholds;
+
+// Fully qualified global
+global org.slf4j.Logger logger;
+
+rule "Use Globals"
+    when
+        $p : Person( name != null )
+    then
+        results.add($p.getName());
+        logger.info("Processed: " + $p.getName());
+end

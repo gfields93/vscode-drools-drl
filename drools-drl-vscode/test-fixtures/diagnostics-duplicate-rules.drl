@@ -1,0 +1,27 @@
+// Test: Should trigger DRL006 - duplicate rule names
+package com.example.rules;
+
+import com.example.model.*;
+
+rule "Process Order"
+    when
+        $o : Order( status == "NEW" )
+    then
+        System.out.println("Processing order: " + $o.getOrderId());
+end
+
+rule "Ship Order"
+    when
+        $o : Order( status == "READY" )
+    then
+        $o.setStatus("SHIPPED");
+        update( $o );
+end
+
+// Duplicate: same name as first rule
+rule "Process Order"
+    when
+        $o : Order( status == "RETRY" )
+    then
+        System.out.println("Retrying order: " + $o.getOrderId());
+end

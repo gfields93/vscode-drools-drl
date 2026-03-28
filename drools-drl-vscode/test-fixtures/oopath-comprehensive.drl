@@ -1,0 +1,64 @@
+// Test: OOPath notation (Drools 8+) in various forms
+package com.example.rules;
+
+import com.example.model.*;
+
+unit OrderProcessingUnit;
+
+// Simple OOPath with binding
+rule "OOPath Simple Binding"
+    when
+        $o : /orders[ status == "PENDING" ]
+    then
+        System.out.println("Pending: " + $o.getOrderId());
+end
+
+// OOPath without binding
+rule "OOPath No Binding"
+    when
+        /orders[ status == "ACTIVE" ]
+    then
+        System.out.println("Active order found");
+end
+
+// OOPath with two segments
+rule "OOPath Two Segments"
+    when
+        $item : /orders[ status == "ACTIVE" ] / items[ price > 100 ]
+    then
+        System.out.println("Expensive item: " + $item.getName());
+end
+
+// OOPath with three segments
+rule "OOPath Three Segments"
+    when
+        $detail : /customers[ tier == "GOLD" ] / orders[ total > 500 ] / items[ category == "Electronics" ]
+    then
+        System.out.println("Gold customer electronics: " + $detail);
+end
+
+// OOPath with complex constraints
+rule "OOPath Complex Constraints"
+    when
+        $o : /orders[ total > 1000, status == "SHIPPED", priority == "HIGH" ]
+    then
+        System.out.println("High priority shipped order");
+end
+
+// OOPath combined with regular patterns
+rule "OOPath Mixed"
+    when
+        $o : /orders[ status == "PENDING" ]
+        $c : Customer( id == $o.getCustomerId(), tier == "VIP" )
+    then
+        System.out.println("VIP pending order");
+end
+
+// Multiple OOPath conditions
+rule "OOPath Multiple"
+    when
+        $pending : /orders[ status == "PENDING" ]
+        $shipped : /orders[ status == "SHIPPED" ]
+    then
+        System.out.println("Both pending and shipped orders exist");
+end
