@@ -3,5 +3,9 @@ phase-1-declarative-language-features.md
 phase-2-basic-language-server.md
 phase-3-project-aware-intelligence.md
 
+# Build artifacts
+*.vsix
+node_modules/
+
 # macOS
 .DS_Store
