@@ -25,7 +25,10 @@ export function tokenRange(token: {
   startColumn?: number;
   endLine?: number;
   endColumn?: number;
-}): Range {
+} | undefined | null): Range {
+  if (!token) {
+    return { startLine: 0, startColumn: 0, endLine: 0, endColumn: 0 };
+  }
   // Use safeInt to guard against NaN from Chevrotain error-recovery tokens,
   // where positions are NaN (not null/undefined, so ?? doesn't catch them).
   const sl = safeInt(token.startLine, 1);

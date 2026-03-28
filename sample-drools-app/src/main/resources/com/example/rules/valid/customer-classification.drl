@@ -1,0 +1,59 @@
+package com.example.rules;
+
+import com.example.model.Person;
+import com.example.model.Address;
+import com.example.model.Customer;
+
+global java.util.List globalResults;
+
+// Classify people as adults and track them
+rule "Check Adult Status"
+    salience 10
+    no-loop true
+    when
+        $p : Person( age >= 18, name != null )
+    then
+        delete( $p );
+        $p.setStatus("adult");
+        update( $p );
+        globalResults.add( $p.getName() );
+end
+
+// Greet newcomers without an address on file
+rule "Greet Person"
+    agenda-group "greetings"
+    when
+        $p : Person( name != null )
+        not Address( owner == $p )
+    then
+        System.out.println("Hello, " + $p.getName());
+        insert( new Address($p, "Unknown") );
+end
+
+// Identify VIP customers based on loyalty
+rule "Classify VIP Customer"
+    when
+        $c : Customer( loyaltyYears >= 5, tier != "VIP" )
+    then
+        $c.setTier("VIP");
+        update( $c );
+end
+
+// Flag employee customers for special handling
+rule "Employee Discount Eligibility"
+    when
+        $c : Customer( isEmployee == true, tier != "EMPLOYEE" )
+    then
+        $c.setTier("EMPLOYEE");
+        update( $c );
+end
+
+rule "Greet Person_2"
+    agenda-group "greetings"
+    when
+        $p : Person( name != null )
+        not Address( owner == $p )
+    then
+        System.out.println("Hello, " + $p.getName());
+        insert( new Address($p, "Unknown") );
+end

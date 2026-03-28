@@ -1,0 +1,58 @@
+package com.example.rules;
+
+import com.example.model.Person;
+import com.example.model.Order;
+
+// =====================================================================
+// DRL006: Duplicate rule name — "Check Person Age" appears twice
+// in this file. The second occurrence should be flagged.
+// =====================================================================
+
+rule "Check Person Age"
+    when
+        $p : Person( age > 21 )
+    then
+        $p.setStatus("ADULT");
+        update( $p );
+end
+
+rule "Check Person Age"
+    when
+        $p : Person( age > 65 )
+    then
+        $p.setStatus("SENIOR");
+        update( $p );
+end
+
+// =====================================================================
+// DRL007: Empty LHS — the when block has no conditions, so this
+// rule fires unconditionally on every rule engine cycle.
+// =====================================================================
+
+rule "Unconditional Logging"
+    when
+    then
+        System.out.println("Rule engine cycle executed");
+end
+
+// =====================================================================
+// DRL008: Empty RHS — the then block has no actions. This rule
+// matches but does nothing, which is almost always a mistake.
+// =====================================================================
+
+rule "Order Matches But Does Nothing"
+    when
+        $o : Order( status == "PENDING" )
+    then
+end
+
+// =====================================================================
+// DRL013: Deprecated retract — should use delete() instead.
+// =====================================================================
+
+rule "Remove Processed Order"
+    when
+        $o : Order( status == "COMPLETED" )
+    then
+        retract( $o );
+end
