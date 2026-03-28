@@ -66,6 +66,7 @@ function checkDuplicateRuleNames(doc: DrlDocument, diagnostics: Diagnostic[]): v
  */
 function checkEmptyConditions(doc: DrlDocument, diagnostics: Diagnostic[]): void {
   for (const rule of doc.ast.rules) {
+    if (ruleIncomplete(rule)) continue;
     if (rule.lhs.conditions.length === 0) {
       diagnostics.push({
         range: toLspRange(rule.lhs.range),
@@ -83,6 +84,7 @@ function checkEmptyConditions(doc: DrlDocument, diagnostics: Diagnostic[]): void
  */
 function checkEmptyActions(doc: DrlDocument, diagnostics: Diagnostic[]): void {
   for (const rule of doc.ast.rules) {
+    if (ruleIncomplete(rule)) continue;
     if (rule.rhs.actions.length === 0) {
       diagnostics.push({
         range: toLspRange(rule.rhs.range),
@@ -96,10 +98,23 @@ function checkEmptyActions(doc: DrlDocument, diagnostics: Diagnostic[]): void {
 }
 
 /**
+ * Detect rules where error recovery prevented full parsing.
+ * When thenToken/endToken are missing the RHS range falls back to the
+ * full rule range — its start matches the rule keyword's start.
+ */
+function ruleIncomplete(rule: AST.RuleDeclaration): boolean {
+  return (
+    rule.rhs.range.startLine === rule.range.startLine &&
+    rule.rhs.range.startColumn === rule.range.startColumn
+  );
+}
+
+/**
  * DRL010: Unused binding variables (declared in LHS but never used in RHS).
  */
 function checkUnusedBindings(doc: DrlDocument, diagnostics: Diagnostic[]): void {
   for (const rule of doc.ast.rules) {
+    if (ruleIncomplete(rule)) continue;
     const bindings = doc.getBindingsInRule(rule);
     if (bindings.length === 0) continue;
 
@@ -132,6 +147,7 @@ function checkUnusedBindings(doc: DrlDocument, diagnostics: Diagnostic[]): void 
  */
 function checkUndeclaredBindingsInRhs(doc: DrlDocument, diagnostics: Diagnostic[]): void {
   for (const rule of doc.ast.rules) {
+    if (ruleIncomplete(rule)) continue;
     const bindings = doc.getBindingsInRule(rule);
     const declaredNames = new Set(bindings.map((b) => b.name));
 
