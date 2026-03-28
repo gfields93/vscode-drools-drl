@@ -286,8 +286,8 @@ class DrlCstParser extends CstParser {
       ]);
       this.CONSUME(T.Colon);
     });
-    // Fact type
-    this.CONSUME2(T.Identifier, { LABEL: "factType" });
+    // Fact type (may be qualified: java.util.List, com.example.Foo)
+    this.SUBRULE(this.qualifiedName, { LABEL: "factType" });
     // Constraints in parentheses
     this.CONSUME(T.LParen);
     this.SUBRULE(this.balancedParenContent, { LABEL: "constraints" });
@@ -1187,7 +1187,13 @@ function visitEvalCondition(node: CstNode): AST.EvalCondition {
 }
 
 function visitPatternCondition(node: CstNode): AST.PatternCondition {
-  const factTypeToken = (node.children["factType"] as IToken[])[0];
+  const factTypeNodes = node.children["factType"] as CstNode[] | undefined;
+  const factType = factTypeNodes ? extractQualifiedName(factTypeNodes) : "Unknown";
+  const factTypeFirstToken = factTypeNodes?.[0] ? findFirstToken(factTypeNodes[0]) : undefined;
+  const factTypeLastToken = factTypeNodes?.[0] ? findLastToken(factTypeNodes[0]) : undefined;
+  const factTypeRange = factTypeFirstToken && factTypeLastToken
+    ? mergeRanges(tokenRange(factTypeFirstToken), tokenRange(factTypeLastToken))
+    : undefined;
 
   let binding: AST.BindingVariable | undefined;
   const bindingTokens = node.children["binding"] as IToken[] | undefined;
@@ -1201,14 +1207,15 @@ function visitPatternCondition(node: CstNode): AST.PatternCondition {
 
   const firstToken = findFirstToken(node);
   const lastToken = findLastToken(node);
+  const fullRange = mergeRanges(tokenRange(firstToken), tokenRange(lastToken));
 
   const result: AST.PatternCondition = {
     kind: "PatternCondition",
     binding,
-    factType: factTypeToken.image,
+    factType,
     constraints: "",
-    range: mergeRanges(tokenRange(firstToken), tokenRange(lastToken)),
-    factTypeRange: tokenRange(factTypeToken),
+    range: fullRange,
+    factTypeRange: factTypeRange ?? fullRange,
   };
 
   // Check for from clause
