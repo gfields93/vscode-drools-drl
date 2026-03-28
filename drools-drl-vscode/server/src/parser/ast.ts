@@ -18,6 +18,7 @@ export interface Range {
 export interface DrlFile {
   kind: "DrlFile";
   packageDecl?: PackageDeclaration;
+  unitDecl?: UnitDeclaration;
   imports: ImportDeclaration[];
   globals: GlobalDeclaration[];
   declares: TypeDeclaration[];
@@ -31,6 +32,12 @@ export interface DrlFile {
 // =====================================================================
 // Top-level declarations
 // =====================================================================
+
+export interface UnitDeclaration {
+  kind: "UnitDeclaration";
+  name: string;
+  range: Range;
+}
 
 export interface PackageDeclaration {
   kind: "PackageDeclaration";

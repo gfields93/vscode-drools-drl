@@ -19,6 +19,18 @@ export function getDocumentSymbols(doc: DrlDocument): DocumentSymbol[] {
     });
   }
 
+  // Unit
+  if (doc.ast.unitDecl) {
+    const unit = doc.ast.unitDecl;
+    symbols.push({
+      name: unit.name,
+      detail: "unit",
+      kind: SymbolKind.Namespace,
+      range: toLspRange(unit.range),
+      selectionRange: toLspRange(unit.range),
+    });
+  }
+
   // Imports
   for (const imp of doc.ast.imports) {
     symbols.push({

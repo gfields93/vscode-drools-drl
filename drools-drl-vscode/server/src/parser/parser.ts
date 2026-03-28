@@ -21,6 +21,7 @@ class DrlCstParser extends CstParser {
     this.OPTION(() => this.SUBRULE(this.packageDeclaration));
     this.MANY(() => {
       this.OR([
+        { ALT: () => this.SUBRULE(this.unitDeclaration) },
         { ALT: () => this.SUBRULE(this.importDeclaration) },
         { ALT: () => this.SUBRULE(this.globalDeclaration) },
         { ALT: () => this.SUBRULE(this.declareBlock) },
@@ -35,6 +36,13 @@ class DrlCstParser extends CstParser {
   public packageDeclaration = this.RULE("packageDeclaration", () => {
     this.CONSUME(T.Package);
     this.SUBRULE(this.qualifiedName);
+    this.OPTION(() => this.CONSUME(T.Semicolon));
+  });
+
+  // -- Unit -----------------------------------------------------------
+  public unitDeclaration = this.RULE("unitDeclaration", () => {
+    this.CONSUME(T.Unit);
+    this.CONSUME(T.Identifier, { LABEL: "unitName" });
     this.OPTION(() => this.CONSUME(T.Semicolon));
   });
 
@@ -744,6 +752,12 @@ function buildAst(cst: CstNode, text: string): AST.DrlFile {
     result.packageDecl = visitPackage(pkgNodes[0]);
   }
 
+  // Unit
+  const unitNodes = cst.children["unitDeclaration"] as CstNode[] | undefined;
+  if (unitNodes?.[0]) {
+    result.unitDecl = visitUnit(unitNodes[0]);
+  }
+
   // Imports
   const importNodes = cst.children["importDeclaration"] as CstNode[] | undefined;
   if (importNodes) {
@@ -800,6 +814,17 @@ function visitPackage(node: CstNode): AST.PackageDeclaration {
     kind: "PackageDeclaration",
     name,
     range: mergeRanges(tokenRange(pkgToken), tokenRange(lastToken)),
+  };
+}
+
+function visitUnit(node: CstNode): AST.UnitDeclaration {
+  const nameToken = (node.children["unitName"] as IToken[])[0];
+  const unitToken = (node.children["Unit"] as IToken[])[0];
+  const lastToken = findLastToken(node);
+  return {
+    kind: "UnitDeclaration",
+    name: nameToken.image,
+    range: mergeRanges(tokenRange(unitToken), tokenRange(lastToken)),
   };
 }
 
