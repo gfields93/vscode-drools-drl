@@ -5,13 +5,17 @@ import {
   TextDocumentPositionParams,
 } from "vscode-languageserver";
 import { DrlDocument } from "../model/drl-document";
+import { WorkspaceIndex } from "../workspace/workspace-index";
+import * as AST from "../parser/ast";
+import { isNumericType, isStringType, isCollectionType, isBooleanType } from "../classpath/type-model";
 
 /**
  * Provide context-sensitive code completions for DRL files.
  */
 export function getCompletions(
   doc: DrlDocument,
-  params: TextDocumentPositionParams
+  params: TextDocumentPositionParams,
+  workspaceIndex?: WorkspaceIndex
 ): CompletionItem[] {
   const ctx = doc.getCursorContext(params.position);
 
@@ -21,11 +25,11 @@ export function getCompletions(
     case "attributes":
       return getAttributeCompletions();
     case "lhs":
-      return getLhsCompletions(doc);
+      return getLhsCompletions(doc, params, workspaceIndex);
     case "rhs":
-      return getRhsCompletions(doc, ctx.rule);
+      return getRhsCompletions(doc, ctx.rule, workspaceIndex);
     case "query":
-      return getLhsCompletions(doc);
+      return getLhsCompletions(doc, params, workspaceIndex);
     default:
       return getTopLevelCompletions();
   }
@@ -201,7 +205,11 @@ function getAttributeCompletions(): CompletionItem[] {
   ];
 }
 
-function getLhsCompletions(doc: DrlDocument): CompletionItem[] {
+function getLhsCompletions(
+  doc: DrlDocument,
+  params: TextDocumentPositionParams,
+  workspaceIndex?: WorkspaceIndex
+): CompletionItem[] {
   const items: CompletionItem[] = [];
 
   // LHS keywords
@@ -224,7 +232,7 @@ function getLhsCompletions(doc: DrlDocument): CompletionItem[] {
       label: kw.label,
       kind: CompletionItemKind.Keyword,
       detail: kw.detail,
-      sortText: "1" + kw.label,
+      sortText: "3" + kw.label,
     });
   }
 
@@ -242,7 +250,7 @@ function getLhsCompletions(doc: DrlDocument): CompletionItem[] {
       label: op.label,
       kind: CompletionItemKind.Operator,
       detail: op.detail,
-      sortText: "2" + op.label,
+      sortText: "4" + op.label,
     });
   }
 
@@ -254,7 +262,7 @@ function getLhsCompletions(doc: DrlDocument): CompletionItem[] {
       detail: "Declared type",
       insertText: `${typeName}( \${1} )`,
       insertTextFormat: InsertTextFormat.Snippet,
-      sortText: "0" + typeName,
+      sortText: "2" + typeName,
     });
   }
 
@@ -266,7 +274,7 @@ function getLhsCompletions(doc: DrlDocument): CompletionItem[] {
       detail: "Imported type",
       insertText: `${typeName}( \${1} )`,
       insertTextFormat: InsertTextFormat.Snippet,
-      sortText: "0" + typeName,
+      sortText: "2" + typeName,
     });
   }
 
@@ -279,7 +287,7 @@ function getLhsCompletions(doc: DrlDocument): CompletionItem[] {
       detail: "Accumulate function",
       insertText: `${fn}( \${1} )`,
       insertTextFormat: InsertTextFormat.Snippet,
-      sortText: "3" + fn,
+      sortText: "5" + fn,
     });
   }
 
@@ -290,17 +298,69 @@ function getLhsCompletions(doc: DrlDocument): CompletionItem[] {
         label: field.name,
         kind: CompletionItemKind.Field,
         detail: `${decl.name}.${field.name} : ${field.type}`,
-        sortText: "0" + field.name,
+        sortText: "0a" + field.name,
       });
     }
+  }
+
+  // Phase 3: Type-aware field completions from Java type index
+  if (workspaceIndex) {
+    addTypeAwareFieldCompletions(doc, params, workspaceIndex, items);
   }
 
   return items;
 }
 
+/**
+ * Add field completions from resolved Java types when inside a pattern constraint.
+ * E.g. Person(|) -> suggest age, name, etc. with type information.
+ */
+function addTypeAwareFieldCompletions(
+  doc: DrlDocument,
+  params: TextDocumentPositionParams,
+  workspaceIndex: WorkspaceIndex,
+  items: CompletionItem[]
+): void {
+  // Try to determine which fact type pattern the cursor is inside
+  const rule = doc.findRuleAt(params.position);
+  if (!rule) return;
+
+  // Check each pattern condition to see if cursor is within it
+  for (const cond of rule.lhs.conditions) {
+    const patternType = findPatternAtPosition(cond, params.position, doc);
+    if (patternType) {
+      const fields = workspaceIndex.getFieldsForFactType(patternType, doc);
+      const existingLabels = new Set(items.map((i) => i.label));
+
+      for (const field of fields) {
+        // Skip if we already have this field from DRL declares
+        if (existingLabels.has(field.name)) continue;
+
+        const typeDisplay = simplifyTypeName(field.type);
+        const operatorSuggestion = getDefaultOperator(field.type);
+
+        items.push({
+          label: field.name,
+          kind: CompletionItemKind.Field,
+          detail: `${patternType}.${field.name} : ${typeDisplay}`,
+          documentation: `Field from ${patternType} (${field.isReadOnly ? "read-only" : "read-write"})`,
+          insertText: `${field.name} ${operatorSuggestion} \${1}`,
+          insertTextFormat: InsertTextFormat.Snippet,
+          sortText: "0a" + field.name,
+        });
+      }
+
+      // Also add type-specific operators after field names
+      addTypeSpecificOperators(fields, items);
+      break;
+    }
+  }
+}
+
 function getRhsCompletions(
   doc: DrlDocument,
-  rule: { name: string }
+  rule: { name: string },
+  workspaceIndex?: WorkspaceIndex
 ): CompletionItem[] {
   const items: CompletionItem[] = [];
 
@@ -363,6 +423,11 @@ function getRhsCompletions(
         sortText: "0" + binding.name,
       });
     }
+
+    // Phase 3: Add setter method completions for binding variables
+    if (workspaceIndex) {
+      addSetterCompletions(doc, ruleDecl, workspaceIndex, items);
+    }
   }
 
   // Globals
@@ -376,4 +441,162 @@ function getRhsCompletions(
   }
 
   return items;
+}
+
+/**
+ * Add setter method completions for bound variables in the RHS.
+ * E.g. inside modify($p) { | } -> suggest setAge(int), setName(String), etc.
+ */
+function addSetterCompletions(
+  doc: DrlDocument,
+  rule: AST.RuleDeclaration,
+  workspaceIndex: WorkspaceIndex,
+  items: CompletionItem[]
+): void {
+  const bindings = doc.getBindingsInRule(rule);
+
+  for (const binding of bindings) {
+    const typeInfo = workspaceIndex.resolveBindingType(binding.name, rule, doc);
+    if (!typeInfo) continue;
+
+    const methods = workspaceIndex.getMethodsForFactType(typeInfo.simpleName, doc);
+    const setters = methods.filter(
+      (m) => m.name.startsWith("set") && m.parameters.length > 0 && !m.isStatic
+    );
+
+    for (const setter of setters) {
+      const paramTypes = setter.parameters
+        .map((p) => simplifyTypeName(p.type))
+        .join(", ");
+
+      items.push({
+        label: `${setter.name}(${paramTypes})`,
+        kind: CompletionItemKind.Method,
+        detail: `${binding.name}.${setter.name} → ${typeInfo.simpleName}`,
+        insertText: `${setter.name}( \${1} )`,
+        insertTextFormat: InsertTextFormat.Snippet,
+        sortText: "0b" + setter.name,
+      });
+    }
+  }
+}
+
+// ── Utility helpers ───────────────────────────────────────────────────
+
+import { isPositionInRange } from "../utils/position";
+import { Position } from "vscode-languageserver";
+
+/**
+ * Find the fact type name if the cursor position is inside a pattern condition.
+ */
+function findPatternAtPosition(
+  condition: AST.Condition,
+  pos: Position,
+  doc: DrlDocument
+): string | undefined {
+  switch (condition.kind) {
+    case "PatternCondition":
+      if (isPositionInRange(pos, condition.range)) {
+        return condition.factType;
+      }
+      return undefined;
+    case "NotCondition":
+      return findPatternAtPosition(condition.condition, pos, doc);
+    case "ExistsCondition":
+      return findPatternAtPosition(condition.condition, pos, doc);
+    case "AndCondition":
+      return (
+        findPatternAtPosition(condition.left, pos, doc) ||
+        findPatternAtPosition(condition.right, pos, doc)
+      );
+    case "OrCondition":
+      return (
+        findPatternAtPosition(condition.left, pos, doc) ||
+        findPatternAtPosition(condition.right, pos, doc)
+      );
+    case "ForallCondition":
+      for (const c of condition.conditions) {
+        const result = findPatternAtPosition(c, pos, doc);
+        if (result) return result;
+      }
+      return undefined;
+    case "FromCondition":
+      return findPatternAtPosition(condition.pattern, pos, doc);
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Simplify a fully-qualified type name for display.
+ * E.g. "java.lang.String" -> "String"
+ */
+function simplifyTypeName(typeName: string): string {
+  const lastDot = typeName.lastIndexOf(".");
+  if (lastDot >= 0) return typeName.slice(lastDot + 1);
+  return typeName;
+}
+
+/**
+ * Get a default comparison operator based on field type.
+ */
+function getDefaultOperator(typeName: string): string {
+  if (isNumericType(typeName)) return ">";
+  if (isBooleanType(typeName)) return "==";
+  if (isStringType(typeName)) return "==";
+  if (isCollectionType(typeName)) return "contains";
+  return "==";
+}
+
+/**
+ * Add type-specific constraint operators based on field types.
+ */
+function addTypeSpecificOperators(
+  fields: { name: string; type: string }[],
+  items: CompletionItem[]
+): void {
+  const hasNumeric = fields.some((f) => isNumericType(f.type));
+  const hasString = fields.some((f) => isStringType(f.type));
+  const hasCollection = fields.some((f) => isCollectionType(f.type));
+
+  if (hasNumeric) {
+    for (const op of [">", "<", ">=", "<=", "=="]) {
+      items.push({
+        label: op,
+        kind: CompletionItemKind.Operator,
+        detail: "Numeric comparison",
+        sortText: "4" + op,
+      });
+    }
+  }
+
+  if (hasString) {
+    items.push({
+      label: "matches",
+      kind: CompletionItemKind.Operator,
+      detail: "Regex match (String)",
+      sortText: "4matches",
+    });
+    items.push({
+      label: "str",
+      kind: CompletionItemKind.Operator,
+      detail: "String operation",
+      sortText: "4str",
+    });
+  }
+
+  if (hasCollection) {
+    items.push({
+      label: "contains",
+      kind: CompletionItemKind.Operator,
+      detail: "Collection contains element",
+      sortText: "4contains",
+    });
+    items.push({
+      label: "memberOf",
+      kind: CompletionItemKind.Operator,
+      detail: "Element in collection",
+      sortText: "4memberOf",
+    });
+  }
 }

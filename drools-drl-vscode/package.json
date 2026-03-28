@@ -90,9 +90,62 @@
           "type": "boolean",
           "default": true,
           "description": "Ensure file ends with a newline"
+        },
+        "drools.java.classpath": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "maven", "gradle", "manual"],
+          "description": "How to resolve the Java classpath. 'auto' detects from project files."
+        },
+        "drools.java.manualClasspath": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Manual classpath entries (JAR paths or directories) when classpath mode is 'manual'"
+        },
+        "drools.java.sourceRoots": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["src/main/java"],
+          "description": "Java source roots to scan for type definitions"
+        },
+        "drools.java.useJavapFallback": {
+          "type": "boolean",
+          "default": false,
+          "description": "Fall back to 'javap' for class file parsing when the built-in parser encounters unsupported class file features. Requires a JDK installation."
+        },
+        "drools.analysis.conflictDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable rule conflict and redundancy analysis"
+        },
+        "drools.analysis.maxRulesForConflictAnalysis": {
+          "type": "number",
+          "default": 500,
+          "description": "Maximum number of rules to include in conflict analysis (higher values are slower)"
+        },
+        "drools.index.excludePatterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["**/test/**", "**/target/**", "**/build/**"],
+          "description": "Glob patterns for files/directories to exclude from indexing"
         }
       }
-    }
+    },
+    "commands": [
+      {
+        "command": "drools.rebuildWorkspaceIndex",
+        "title": "Drools: Rebuild Workspace Index"
+      },
+      {
+        "command": "drools.rebuildClasspath",
+        "title": "Drools: Rebuild Classpath"
+      },
+      {
+        "command": "drools.showTypeInfo",
+        "title": "Drools: Show Type Info"
+      }
+    ]
   },
   "scripts": {
     "compile": "tsc -b",

@@ -824,7 +824,7 @@ function buildAst(cst: CstNode, text: string): AST.DrlFile {
   // Rules
   const ruleNodes = cst.children["ruleBlock"] as CstNode[] | undefined;
   if (ruleNodes) {
-    result.rules = ruleNodes.map(visitRule);
+    result.rules = ruleNodes.map((n) => visitRule(n, text));
   }
 
   // Compute file range
@@ -1019,7 +1019,7 @@ function visitQuery(node: CstNode): AST.QueryDeclaration {
   };
 }
 
-function visitRule(node: CstNode): AST.RuleDeclaration {
+function visitRule(node: CstNode, text: string): AST.RuleDeclaration {
   const nameToken = (node.children["ruleName"] as IToken[])[0];
   const name = nameToken.image.replace(/^"|"$/g, "");
 
@@ -1060,10 +1060,20 @@ function visitRule(node: CstNode): AST.RuleDeclaration {
   const actionNodes = node.children["rhsAction"] as CstNode[] | undefined;
   const actions: AST.RHSAction[] = actionNodes?.map(visitRhsAction) ?? [];
 
+  // Extract raw RHS text between 'then' and 'end' tokens
+  let rawText = "";
+  if (thenToken && endToken) {
+    const thenEnd = (thenToken.startOffset ?? 0) + (thenToken.image?.length ?? 4);
+    const endStart = endToken.startOffset ?? text.length;
+    if (endStart > thenEnd) {
+      rawText = text.slice(thenEnd, endStart).trim();
+    }
+  }
+
   const rhs: AST.RHSBlock = {
     kind: "RHSBlock",
     actions,
-    rawText: "",
+    rawText,
     range: thenToken && endToken
       ? mergeRanges(tokenRange(thenToken), tokenRange(endToken))
       : fallbackRange,
