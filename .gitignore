@@ -6,6 +6,7 @@ phase-3-project-aware-intelligence.md
 # Build artifacts
 *.vsix
 node_modules/
+out/
 
 # macOS
 .DS_Store

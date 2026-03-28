@@ -2,9 +2,25 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "compile",
+      "type": "shell",
+      "command": "npm run compile",
+      "group": "build",
+      "problemMatcher": ["$tsc"],
+      "isBackground": false
+    },
+    {
+      "label": "watch",
+      "type": "shell",
+      "command": "npm run watch",
+      "group": "build",
+      "problemMatcher": ["$tsc-watch"],
+      "isBackground": true
+    },
+    {
       "label": "Package Extension",
       "type": "shell",
-      "command": "npx @vscode/vsce package",
+      "command": "npm run package",
       "group": "build",
       "problemMatcher": []
     }
